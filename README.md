@@ -4,6 +4,8 @@
 ![alt text](https://img.shields.io/github/license/duty1g/subcat "")
 
 <img src="https://user-images.githubusercontent.com/3162883/168605639-8a2cb290-38d3-4edb-9587-584d17f4fac3.png" width="60%"/>
+<h4 align="center">Fast subdomain enumeration tool.</h4>
+
 
 #
 SubCat a subdomain discovery tool that discovers valid subdomains for websites by using passive online sources. It has a simple modular architecture and is optimized for speed. SubCat is built for doing one thing only - passive subdomain enumeration, and it does that very well.
