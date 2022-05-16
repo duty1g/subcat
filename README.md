@@ -6,8 +6,18 @@
 <img src="https://user-images.githubusercontent.com/3162883/168605639-8a2cb290-38d3-4edb-9587-584d17f4fac3.png" width="60%"/>
 
 #
-A tool written in python to find subdomains of a target and generate a scope.
+subcat a subdomain discovery tool that discovers valid subdomains for websites by using passive online sources. It has a simple modular architecture and is optimized for speed. subcat is built for doing one thing only - passive subdomain enumeration, and it does that very well.
 
+We have designed subcat to comply with all passive sources licenses, and usage restrictions, as well as maintained a consistently passive model to make it useful to both penetration testers and bug bounty hunters alike.
+
+
+### Features
+
+- Fast and powerful resolution and wildcard elimination module
+- **Curated** passive sources to maximize results
+- Optimized for speed, very fast and **lightweight** on resources
+- **STDIN/OUT** support for integrating in workflows
+- scope limitation based on given IP ranges list 
 
 ### Install
 ```
