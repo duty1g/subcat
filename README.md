@@ -1,4 +1,5 @@
 # SubCat
+![alt text](https://img.shields.io/github/stars/duty1g/subcat "")
 ![alt text](https://img.shields.io/github/languages/top/duty1g/subcat "")
 ![alt text](https://img.shields.io/github/license/duty1g/subcat "")
 
