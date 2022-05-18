@@ -21,19 +21,6 @@ warnings.filterwarnings("ignore")
 domainList = []
 scopeList = []
 
-
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-    NATIVE = '\033[m'
-
-
 animation = "⢿⣻⣽⣾⣷⣯⣟⡿"
 reset = '\033[m'
 light_grey = '\033[37m'
@@ -74,12 +61,13 @@ def banner():
 
 
 class SubCat:
-    def __init__(self, domain, threads=50, scope=False, debug=False, statusCode=False):
+    def __init__(self, domain, threads=50, scope=False, debug=False, statusCode=False, nip=False):
         self.domain = domain
         self.threads = threads
         self.scope = scope
         self.debug = debug
         self.statusCode = statusCode
+        self.nip = nip
         self.scopeList = []
         if self.scope:
             self._log('Loading scope list')
@@ -92,7 +80,7 @@ class SubCat:
     def fetchWorker(self, q):
         domainAndIp = q
         ipDomain = self.getIP(domainAndIp)
-        domainReturn = '\033[94m' + domainAndIp
+        domainReturn = domainAndIp
         if self.statusCode:
             try:
                 statusCode = navigator.Navigator().downloadResponse('http://{}'.format(domainAndIp), 'STATUS',
@@ -105,10 +93,16 @@ class SubCat:
 
         if self.scope:
             if ipDomain in self.scopeList:
-                domainReturn += ' \033[92m{}'.format(ipDomain)
+                if not self.nip:
+                    domainReturn += ' {}'.format(ipDomain)
+                else:
+                    domainReturn += ''
                 print(domainReturn)
         else:
-            domainReturn += ' \033[92m{}'.format(ipDomain)
+            if not self.nip:
+                domainReturn += ' {}'.format(ipDomain)
+            else:
+                domainReturn += ''
             print(domainReturn)
 
     def init_worker(self):
@@ -149,8 +143,8 @@ class SubCat:
                 load += 1
                 time.sleep(0.1)
             sys.stdout.write(
-                "\r\033[1m\033[1m\033[31m[\033[32m+\033[31m]\033[32m extracting subdomains : \033[33m" + str(
-                    len(domainList)) + "\033[0m")
+                '\r[' + '\033[36m' + current_time + '\033[m' + '] [' + '\033[92m' + 'INFO' + '\033[m' + ']:' + "\033[1m\033[1m\033\033[32m extracted subdomains : \033[33m" + str(
+                    len(domainList)) + "  \033[0m")
             sys.stdout.flush()
             print('\n')
             th.join()
@@ -203,6 +197,8 @@ def argParserCommands():
     parser.add_argument('--scope', dest="scope",
                         help='Show only in cope', default=False)
     parser.add_argument('-t', '--threads', type=int, dest="threads", default=50, help="50")
+    parser.add_argument('-nip', '--no-ip', dest="nip", help='Do not respolve IP', default=False,
+                        action="store_true")
     parser.add_argument('-v', dest="verbose", help='Verbose Mode', default=False,
                         action="store_true")
 
@@ -217,6 +213,6 @@ def sigint_handler(signum, frame):
 if __name__ == "__main__":
     banner()
     args = argParserCommands()
-    subcat = SubCat(args.domain, args.threads, args.scope, args.verbose, args.statusCode)
+    subcat = SubCat(args.domain, args.threads, args.scope, args.verbose, args.statusCode, args.nip)
     subcat.getDomains()
     subcat.fetchDomains(domainList)
