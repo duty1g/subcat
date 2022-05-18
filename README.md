@@ -51,18 +51,25 @@ This will display help for the tool. Here are all the switches it supports.
 ```yaml
 Flags:
 INPUT:
-   -d, -domain --domain string  domains to find subdomains for
+   -d --domain string  domains to find subdomains for
+   -l string[] | stdin  list of domains to find subdomains for
    --scope string Show only in cope
 
 OUTPUT:
    -sc, --status-code string       Show response status code
-   -nip --no-ip                Do not respolve IP
+   -nip --no-ip       Do not respolve IP
+   
+CONFIG:
+   -t --threads       Number of threads used
 
 DEBUG:
    -v        show verbose output
 ```
 
 ### Running SubCat
+```console
+cat domains | python3 subcat.py -d hackerone.com
+```
 
 ```console
 python3 subcat.py -d hackerone.com
