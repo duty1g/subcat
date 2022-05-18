@@ -68,7 +68,7 @@ DEBUG:
 
 ### Running SubCat
 ```console
-cat domains | python3 subcat.py -d hackerone.com
+cat domains | python3 subcat.py
 ```
 
 ```console
