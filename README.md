@@ -4,7 +4,9 @@
 ![alt text](https://img.shields.io/github/license/duty1g/subcat "")
 
 
-<p align="center"><img src="https://user-images.githubusercontent.com/3162883/168605639-8a2cb290-38d3-4edb-9587-584d17f4fac3.png" width="60%"/></p>
+<p align="center"><img src="https://user-images.githubusercontent.com/3162883/168605639-8a2cb290-38d3-4edb-9587-584d17f4fac3.png#gh-dark-mode-only" width="60%"/>
+  <img src="https://user-images.githubusercontent.com/3162883/169027068-21d65374-489c-4c8d-8c99-649bd333252c.png#gh-light-mode-only" width="60%"/>
+</p>
 <h4 align="center">Fast subdomain enumeration tool.</h4>
 
 
