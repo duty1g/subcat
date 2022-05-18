@@ -56,7 +56,7 @@ def banner():
 \t                            {4}
 \n'''
     head = head.format(light_grey, dark_grey, red, yellow, reset)
-    os.system('clear')
+    os.system('cls' if os.name == 'nt' else 'clear')
     sys.stdout.write(bold + head + reset)
 
 
@@ -73,6 +73,7 @@ class SubCat:
             self._log('Loading scope list')
             with open(self.scope) as f:
                 lines = f.readlines()
+            self._log('Resolving scope list to IPV4')
             for line in lines:
                 for ip in ipaddress.IPv4Network(line.strip()):
                     self.scopeList.append(str(ip))
@@ -119,6 +120,7 @@ class SubCat:
             pool.terminate()
 
     def fetch(self):
+        self._log('loading Modules')
         threading.Thread(target=self.queue, args=[modules.alienvault.returnDomains(self.domain)]).start()
         threading.Thread(target=self.queue, args=[modules.wayback.returnDomains(self.domain)]).start()
         threading.Thread(target=self.queue, args=[modules.hackertarget.returnDomains(self.domain)]).start()
@@ -136,14 +138,14 @@ class SubCat:
         current_time = now.strftime("%H:%M:%S")
         try:
             while th.is_alive():
-                sys.stdout.write("\r" + '[' + '\033[36m' + current_time + '\033[m' + '] [' + '\033[92m' + 'INFO' + '\033[m' + ']:' + "\033[1m\033[31m\033[0m\033[32m" + animation[
+                sys.stdout.write("\r" + '[' + '\033[36m' + current_time + '\033[m' + '] [' + '\033[36m' + 'INFO' + '\033[m' + ']:' + "\033[1m\033[31m\033[0m\033[32m" + animation[
                     load % len(animation)] + '\033[1m\033[31m\033[32m extracting subdomains : ' + str(
                     len(domainList)) + '\033[0m')
                 sys.stdout.flush()
                 load += 1
                 time.sleep(0.1)
             sys.stdout.write(
-                '\r[' + '\033[36m' + current_time + '\033[m' + '] [' + '\033[92m' + 'INFO' + '\033[m' + ']:' + "\033[1m\033[1m\033\033[32m extracted subdomains : \033[33m" + str(
+                '\r[' + '\033[36m' + current_time + '\033[m' + '] [' + '\033[36m' + 'INFO' + '\033[m' + ']:' + "\033[1m\033[1m\033\033[32m extracted subdomains : \033[33m" + str(
                     len(domainList)) + "  \033[0m")
             sys.stdout.flush()
             print('\n')
@@ -164,7 +166,7 @@ class SubCat:
         now = datetime.now()
         current_time = now.strftime("%H:%M:%S")
         print(
-                '[' + '\033[36m' + current_time + '\033[m' + '] [' + '\033[33m' + 'INFO' + '\033[m' + ']:' + '\033[m' + ' {0}'.format(
+                '[' + '\033[36m' + current_time + '\033[m' + '] [' + '\033[36m' + 'INFO' + '\033[m' + ']:' + '\033[m' + ' {0}'.format(
                     *args))
 
     def _warn(self, *args):
@@ -190,7 +192,9 @@ class SubCat:
 def argParserCommands():
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--domain', dest="domain", help='google.com',
-                        required=True)
+                        required=False)
+    parser.add_argument('-l', default=(None if sys.stdin.isatty() else sys.stdin), type=argparse.FileType('r'), dest="domainList", help='list.txt',
+                        required=False)
     parser.add_argument('-sc', '--status-code', dest="statusCode",
                         help='Show response status code', default=False,
                         action="store_true")
@@ -205,14 +209,25 @@ def argParserCommands():
     return parser.parse_args()
 
 
-def sigint_handler(signum, frame):
-    print('\nShutting down...')
-    exit(0)
-
-
 if __name__ == "__main__":
     banner()
+
     args = argParserCommands()
-    subcat = SubCat(args.domain, args.threads, args.scope, args.verbose, args.statusCode, args.nip)
-    subcat.getDomains()
-    subcat.fetchDomains(domainList)
+    if args.domainList and args.domain is None:
+        dlist = args.domainList.read()
+        for d in dlist.split('\n'):
+            subcat = SubCat(d.strip(), args.threads, args.scope, args.verbose, args.statusCode, args.nip)
+            subcat.getDomains()
+            subcat.fetchDomains(domainList)
+    elif args.domain and args.domainList is None:
+        subcat = SubCat(args.domain, args.threads, args.scope, args.verbose, args.statusCode, args.nip)
+        subcat.getDomains()
+        subcat.fetchDomains(domainList)
+    elif args.domain and args.domainList:
+        dlist = args.domainList.read()
+        for d in dlist.split('\n'):
+            subcat = SubCat(d.strip(), args.threads, args.scope, args.verbose, args.statusCode, args.nip)
+            subcat.getDomains()
+            subcat.fetchDomains(domainList)
+    else:
+        print(" no domain or list provided")
