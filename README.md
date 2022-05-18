@@ -55,7 +55,7 @@ DEBUG:
    -v        show verbose output
 ```
 
-# Running Subcat
+### Running Subcat
 
 ```console
 python3 subcat.py -d hackerone.com
