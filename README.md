@@ -27,6 +27,7 @@ We have designed SubCat to comply with all passive sources licenses, and usage r
 
 ### Features
 
+[![asciicast](https://asciinema.org/a/14.png)](https://asciinema.org/a/14)
 <img width="592" alt="Screen Shot 2022-05-18 at 12 40 02 PM" src="https://user-images.githubusercontent.com/3162883/169030524-73087bb0-c6e6-4a64-9752-cffa5b3cadb6.png">
 
 - Fast and powerful resolution and wildcard elimination module
