@@ -1,11 +1,11 @@
 
 # SubCat
-<p align="center">
+
 ![alt text](https://img.shields.io/github/stars/duty1g/subcat "")
 ![alt text](https://img.shields.io/github/languages/top/duty1g/subcat "")
 ![alt text](https://img.shields.io/github/license/duty1g/subcat "")
 <a href="https://twitter.com/duty_1g"><img src="https://img.shields.io/twitter/follow/duty_1g.svg?logo=twitter"></a>
-</p>
+
 
 <p align="center"><img src="https://user-images.githubusercontent.com/3162883/168605639-8a2cb290-38d3-4edb-9587-584d17f4fac3.png#gh-dark-mode-only" width="60%"/>
   <img src="https://user-images.githubusercontent.com/3162883/169028346-3151e07e-ea94-4911-8009-942a5f384c77.png#gh-light-mode-only" width="60%"/>
