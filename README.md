@@ -1,16 +1,22 @@
 
 # SubCat
+<p align="center">
 ![alt text](https://img.shields.io/github/stars/duty1g/subcat "")
 ![alt text](https://img.shields.io/github/languages/top/duty1g/subcat "")
 ![alt text](https://img.shields.io/github/license/duty1g/subcat "")
 <a href="https://twitter.com/duty_1g"><img src="https://img.shields.io/twitter/follow/duty_1g.svg?logo=twitter"></a>
-
+</p>
 
 <p align="center"><img src="https://user-images.githubusercontent.com/3162883/168605639-8a2cb290-38d3-4edb-9587-584d17f4fac3.png#gh-dark-mode-only" width="60%"/>
   <img src="https://user-images.githubusercontent.com/3162883/169028346-3151e07e-ea94-4911-8009-942a5f384c77.png#gh-light-mode-only" width="60%"/>
 </p>
 <h4 align="center">Fast subdomain enumeration tool.</h4>
 
+<p align="center">
+  <a href="#features">Features</a> •
+  <a href="#Install">Install</a> •
+  <a href="#Usage">Usage</a>
+</p>
 
 #
 SubCat a subdomain discovery tool that discovers valid subdomains for websites by using passive online sources. It has a simple modular architecture and is optimized for speed. SubCat is built for doing one thing only - passive subdomain enumeration, and it does that very well.
