@@ -15,7 +15,8 @@
 <p align="center">
   <a href="#features">Features</a> •
   <a href="#Install">Install</a> •
-  <a href="#Usage">Usage</a>
+  <a href="#Usage">Usage</a> •
+  <a href="#running-subcat">Running SubCat</a>
 </p>
 
 #
@@ -61,7 +62,7 @@ DEBUG:
    -v        show verbose output
 ```
 
-### Running Subcat
+### Running SubCat
 
 ```console
 python3 subcat.py -d hackerone.com
