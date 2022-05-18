@@ -26,6 +26,7 @@ reset = '\033[m'
 light_grey = '\033[37m'
 dark_grey = '\033[90m'
 red = '\033[31m'
+green = '\033[32m'
 bold = '\033[1m'
 yellow = '\033[93m'
 
@@ -90,7 +91,12 @@ class SubCat:
                 statusCode = 'TIMEOUT'
 
             if statusCode is not None:
-                domainReturn += ' - ({})'.format(statusCode)
+                if statusCode == 200:
+                    domainReturn += ' - ({0}{1}{2})'.format(green, statusCode, reset)
+                elif statusCode == 'TIMEOUT':
+                    domainReturn += ' - ({0}{1}{2})'.format(red, statusCode, reset)
+                else:
+                    domainReturn += ' - ({0}{1}{2})'.format(dark_grey, statusCode, reset)
 
         if self.scope:
             if ipDomain in self.scopeList:
@@ -206,13 +212,13 @@ def argParserCommands():
     parser.add_argument('-v', dest="verbose", help='Verbose Mode', default=False,
                         action="store_true")
 
-    return parser.parse_args()
+    return parser
 
 
 if __name__ == "__main__":
     banner()
 
-    args = argParserCommands()
+    args = argParserCommands().parse_args()
     if args.domainList and args.domain is None:
         dlist = args.domainList.read()
         for d in dlist.split('\n'):
@@ -230,4 +236,4 @@ if __name__ == "__main__":
             subcat.getDomains()
             subcat.fetchDomains(domainList)
     else:
-        print(" no domain or list provided")
+        argParserCommands().print_help()
