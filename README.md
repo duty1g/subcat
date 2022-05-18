@@ -33,10 +33,26 @@ pip3 install -r requirements.txt
 ### Usage
 ```console
 duty@f:~$ python3 subcat.py -d domain.tld
-
-usage: subcat.py [-h] -d DOMAIN [-sc] [--scope SCOPE] [-t THREADS] [-v]
 ```
 
+```console
+duty@f:~$ python3 subcat.py -h
+```
+This will display help for the tool. Here are all the switches it supports.
+
+```yaml
+Flags:
+INPUT:
+   -d, -domain --domain string  domains to find subdomains for
+   --scope string Show only in cope
+
+OUTPUT:
+   -sc, --status-code string       Show response status code
+   -nip --no-ip                Do not respolve IP
+
+DEBUG:
+   -v        show verbose output
+```
 ### License
 
 SubCat is made with 🖤 by duty1g
