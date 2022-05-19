@@ -43,8 +43,8 @@ pip3 install -r requirements.txt
 
 ### Usage
 
-```console
-duty@f:~$ python3 subcat.py -h
+```
+python3 subcat.py -h
 ```
 This will display help for the tool. Here are all the switches it supports.
 
