@@ -1,5 +1,5 @@
 
-# SubCat v1.3.0
+# SubCat v1.3.1
 
 ![alt text](https://img.shields.io/github/stars/duty1g/subcat "")
 ![alt text](https://img.shields.io/github/languages/top/duty1g/subcat "")
