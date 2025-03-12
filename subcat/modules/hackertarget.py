@@ -1,6 +1,9 @@
 from typing import List
-from navigator import Navigator
 from concurrent.futures import ThreadPoolExecutor, as_completed
+try:
+    from subcat.navigator import Navigator
+except:
+    from navigator import Navigator
 
 URL_API_HOSTSEARCH = 'https://api.hackertarget.com/hostsearch/?q={}'
 URL_API_REVERSEIP = 'https://api.hackertarget.com/reverseiplookup/?q={}'

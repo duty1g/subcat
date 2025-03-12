@@ -1,10 +1,13 @@
 from typing import List
-from navigator import Navigator
+try:
+    from subcat.navigator import Navigator
+except:
+    from navigator import Navigator
 
 URL_API = 'https://jldc.me/anubis/subdomains/{}'
 
 
-def returnDomains(domain: str, logger, conf: str) -> List[str]:
+def returnDomains(domain: str, logger, conf: str, reverse: bool = False, scope_list: List[str] = None) -> List[str]:
     domains = set()
     try:
         with Navigator(debug=logger.level >= 2, timeout=20) as nav:

@@ -1,8 +1,11 @@
 from typing import List
-from navigator import Navigator
-from config import Config
-import socket
 from concurrent.futures import ThreadPoolExecutor, as_completed
+try:
+    from subcat.navigator import Navigator
+    from subcat.config import Config
+except:
+    from navigator import Navigator
+    from config import Config
 
 URL_API_DOMAIN = 'https://www.virustotal.com/vtapi/v2/domain/report'
 URL_API_IP = 'https://www.virustotal.com/vtapi/v2/ip-address/report'

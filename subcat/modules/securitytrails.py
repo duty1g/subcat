@@ -1,8 +1,12 @@
 from typing import List
-from navigator import Navigator
-from config import Config
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
+try:
+    from subcat.navigator import Navigator
+    from subcat.config import Config
+except:
+    from navigator import Navigator
+    from config import Config
 
 # Endpoints for SecurityTrails
 URL_API_DOMAIN = 'https://api.securitytrails.com/v1/domain/{}/subdomains'

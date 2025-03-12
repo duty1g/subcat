@@ -1,7 +1,12 @@
 from typing import List
-from navigator import Navigator
-from config import Config
+import sys
+import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+try:
+    from subcat.navigator import Navigator
+except:
+    from navigator import Navigator
 
 URL_API_DOMAIN = 'https://otx.alienvault.com/api/v1/indicators/domain/{}/passive_dns'
 URL_API_IP = 'https://otx.alienvault.com/api/v1/indicators/IPv4/{}/passive_dns'

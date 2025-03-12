@@ -1,6 +1,9 @@
 from typing import List
-from navigator import Navigator
 from concurrent.futures import ThreadPoolExecutor, as_completed
+try:
+    from subcat.navigator import Navigator
+except:
+    from navigator import Navigator
 
 # Endpoints for ThreatCrowd
 URL_API_DOMAIN = 'http://ci-www.threatcrowd.org/searchApi/v2/domain/report/?domain={}'

@@ -1,7 +1,11 @@
 from typing import List
-from navigator import Navigator
-from config import Config
 from concurrent.futures import ThreadPoolExecutor, as_completed
+try:
+    from subcat.navigator import Navigator
+    from subcat.config import Config
+except:
+    from navigator import Navigator
+    from config import Config
 
 URL_API_DOMAIN = 'https://api.shodan.io/dns/domain/{}?key={}'
 URL_API_REVERSE = 'https://api.shodan.io/dns/reverse?ips={}&key={}'

@@ -4,7 +4,10 @@ import ipaddress
 import os
 import json
 import concurrent.futures
-from navigator import Navigator
+if __package__:
+    from .navigator import Navigator
+else:
+    from navigator import Navigator
 
 
 class Detector:

@@ -1,5 +1,5 @@
 # Byte-compiled / optimized / DLL files
-!config.yaml
+config.yaml
 __pycache__/
 *.py[cod]
 *$py.class
