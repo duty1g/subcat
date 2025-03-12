@@ -54,7 +54,7 @@ Before querying third-party services, configure your API keys in the `config.yam
  
 By default, SubCat looks for the configuration file in your user's home directory under `~/.subcat/config.yaml`. You can also specify a custom config path using the `-c` or `--config` option.  
 
-> Not all modules require an API key, but the following sources do:
+Not all modules require an API key, but the following sources do:
 
 - **BinaryEdge**
 - **Virustotal**
