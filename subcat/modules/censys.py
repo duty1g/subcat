@@ -1,8 +1,12 @@
 from typing import List
-from navigator import Navigator
-from config import Config
 import base64
 from concurrent.futures import ThreadPoolExecutor, as_completed
+try:
+    from subcat.navigator import Navigator
+    from subcat.config import Config
+except:
+    from navigator import Navigator
+    from config import Config
 
 URL_API = 'https://search.censys.io/api/v2/hosts/search'
 REVERSE_LOOKUP_SUPPORTED = True

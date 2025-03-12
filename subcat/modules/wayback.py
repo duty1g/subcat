@@ -1,7 +1,9 @@
 from typing import List
 from urllib.parse import urlparse
-from navigator import Navigator
-import time
+try:
+    from subcat.navigator import Navigator
+except:
+    from navigator import Navigator
 
 URL_API = 'http://web.archive.org/cdx/search/cdx?url=*.{}/*&output=txt&fl=original&collapse=urlkey'
 
@@ -10,7 +12,7 @@ def is_valid_subdomain(subdomain: str, domain: str) -> bool:
     return subdomain and subdomain.endswith(domain) and subdomain != domain
 
 
-def returnDomains(domain: str, logger, conf: str) -> List[str]:
+def returnDomains(domain: str, logger, conf: str, reverse: bool = False, scope_list: List[str] = None) -> List[str]:
     domains = set()
     try:
         with Navigator(debug=logger.level >= 2, timeout=30, verify_ssl=False) as nav:

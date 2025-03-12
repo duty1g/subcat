@@ -1,7 +1,10 @@
 from typing import List
 from urllib.parse import urlparse
-from navigator import Navigator
 from concurrent.futures import ThreadPoolExecutor, as_completed
+try:
+    from subcat.navigator import Navigator
+except:
+    from navigator import Navigator
 
 URL_API_DOMAIN = 'https://urlscan.io/api/v1/search/?q=domain:{}'
 URL_API_IP = 'https://urlscan.io/api/v1/search/?q=ip:{}'

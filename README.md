@@ -1,5 +1,5 @@
 
-# SubCat v1.3.0
+# SubCat v1.3.1
 
 ![alt text](https://img.shields.io/github/stars/duty1g/subcat "")
 ![alt text](https://img.shields.io/github/languages/top/duty1g/subcat "")
@@ -27,7 +27,7 @@ SubCat is a powerful subdomain discovery tool that passively aggregates data fro
 Built to comply with licensing and usage restrictions of its passive sources, SubCat ensures minimal impact on target systems while delivering in-depth subdomain intelligence.
 
 
-### Features
+## Features
 
 <img width="1000" alt="demo" src="https://github.com/user-attachments/assets/1de8c659-f35b-44ce-9aa8-c0437717591b">
 
@@ -42,16 +42,19 @@ Built to comply with licensing and usage restrictions of its passive sources, Su
 - **Enhanced Multi-threading:** Uses 50 concurrent threads by default for rapid processing.
 
 
-### Install
+## Install
 ```
 # Linux, Windows, MacOS
-pip3 install -r requirements.txt
+pip install subcat
 ```
 
-### Post Installation
+## Post Installation
 
+Before querying third-party services, configure your API keys in the `config.yaml` file.  
+ 
+By default, SubCat looks for the configuration file in your user's home directory under `~/.subcat/config.yaml`. You can also specify a custom config path using the `-c` or `--config` option.  
 
-Before querying third-party services, configure your API keys in the `config.yaml` file. Not all modules require an API key, but the following sources do:
+Not all modules require an API key, but the following sources do:
 
 - **BinaryEdge**
 - **Virustotal**
@@ -96,10 +99,10 @@ digitalyama:
 
 ```
 
-### Usage
+## Usage
 
 ```console
-python3 subcat.py -h
+subcat -h
 ```
 This will display help for the tool. Here are all the switches it supports.
 
@@ -146,12 +149,12 @@ DEBUG:
   -h, --help            Show this help message and exit
 ```
 
-### Running SubCat
+## Running SubCat
 Here are several examples to help you get started:
 
 **Scan a Single Domain:**
    ```console
-python3 subcat.py -d hackerone.com --sc --title --tech --up                                                                
+subcat -d hackerone.com --sc --title --tech --up                                                                
 
  
                               ;            ;                  
@@ -194,32 +197,32 @@ https://support.hackerone.com [Sign into : HackerOne Support ] [HSTS,Envoy,Cloud
 
 **Pipe Domains from a File with IP Resolution and HTTP Status Codes:**
    ```console
-   cat domains.txt | python3 subcat.py -ip -sc
+   cat domains.txt | subcat -ip -sc
    ```
 
 **Run with Reverse Lookup Mode (Requires IP Scope):**
    ```console
-   python3 subcat.py -d example.com --scope 8.8.8.0/24 -r
+   subcat -d example.com --scope 8.8.8.0/24 -r
    ```
 
 **Scan a Domain and Save the Output to a File (Verbose Mode):**
    ```console
-   python3 subcat.py -d hackerone.com -o output.txt -v
+   subcat -d hackerone.com -o output.txt -v
    ```
 
 **Integrate with HTTPx for Further Processing or any other tool:**
    ```console
-   echo hackerone.com | python3 subcat.py -silent -td -title | httpx -silent
+   echo hackerone.com | subcat -silent -td -title | httpx -silent
    ```
 
 **Scan Multiple Domains from a List:**
    ```console
-   python3 subcat.py -l domains.txt
+   subcat -l domains.txt
    ```
 
 **Custom Module Selection:**
    ```console
-   python3 subcat.py -d example.com -s dnsdumpster,virustotal,urlscan -es digitalyama,anubis
+   subcat -d example.com -s dnsdumpster,virustotal,urlscan -es digitalyama,anubis
    ```
 
 
@@ -247,7 +250,9 @@ SubCat currently supports the following modules for passive subdomain discovery:
 - hackertarget
 - certspotter
 
-SubCat's modular architecture is designed for flexibility and ease of extension. If you have an idea for a new module or want to contribute improvements, feel free to submit a pull request. Your contributions help make SubCat even better!
+SubCat's modular architecture is designed for flexibility and ease of extension. 
+
+If you have an idea for a new module or want to contribute improvements, feel free to submit a pull request. Your contributions help make SubCat even better!
 
 
 ### License

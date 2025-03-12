@@ -1,12 +1,15 @@
 from typing import List
-from navigator import Navigator
-from config import Config
-import re
+try:
+    from subcat.navigator import Navigator
+    from subcat.config import Config
+except:
+    from navigator import Navigator
+    from config import Config
 
 URL_API = 'https://api.dnsdumpster.com/domain/{}'
 
 
-def returnDomains(domain: str, logger, conf: str) -> List[str]:
+def returnDomains(domain: str, logger, conf: str, reverse: bool = False, scope_list: List[str] = None) -> List[str]:
     domains = set()
     keys = Config(config=conf, logger=logger).read('dnsdumpster') or []
     if not keys:

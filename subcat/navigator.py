@@ -4,7 +4,10 @@ import random
 from typing import Optional, Union, Dict, Any
 from urllib3.exceptions import InsecureRequestWarning
 import requests
-from logger import Logger
+if __package__:
+    from .logger import Logger
+else:
+    from logger import Logger
 
 # Default list of user agents for rotation.
 DEFAULT_USER_AGENTS = [

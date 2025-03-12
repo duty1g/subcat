@@ -3,6 +3,7 @@ import argparse
 import importlib
 import ipaddress
 import os
+import pathlib
 import re
 import signal
 import socket
@@ -13,9 +14,16 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 from typing import List, Optional, Set, Dict
 from queue import Queue
-from logger import Logger
-from navigator import Navigator
-from detector import Detector
+import importlib.resources as pkg_resources
+
+if __package__:
+    from .logger import Logger
+    from .navigator import Navigator
+    from .detector import Detector
+else:
+    from logger import Logger
+    from navigator import Navigator
+    from detector import Detector
 
 reset = '\033[m'
 light_grey = '\033[37m'
@@ -27,7 +35,20 @@ yellow = '\033[93m'
 blue = '\033[96m'
 bright_red = '\033[91m'
 animation = "⢿⣻⣽⣾⣷⣯⣟⡿"
-version = '1.3.0'
+
+default_config = """binaryedge: []
+virustotal: []
+securitytrails: []
+shodan: []
+bevigil: []
+chaos: []
+dnsdumpster: []
+netlas: []
+digitalyama: []
+censys: []
+dnsarchive: []
+"""
+version = '1.3.1'
 
 
 def banner():
@@ -84,7 +105,6 @@ class SubCat:
         self.sources = sources
         self.exclude_sources = exclude_sources
         self.logger = logger
-        self.config = config
         self.status_code = status_code
         self.title = title
         self.ip = ip
@@ -98,6 +118,25 @@ class SubCat:
         self.exit_event = threading.Event()
         self.scope = self._load_scope(scope) if scope else None
         signal.signal(signal.SIGINT, self.signal_handler)
+
+        if config is None:
+            home = os.path.expanduser("~")
+            default_config_path = os.path.join(home, ".subcat", "config.yaml")
+            config_dir = os.path.dirname(default_config_path)
+            os.makedirs(config_dir, exist_ok=True)
+            if not os.path.exists(default_config_path):
+                try:
+                    with open(default_config_path, 'w') as f:
+                        f.write(default_config)
+                    self.logger.info(f"Default config created at: {dark_grey}{default_config_path}{reset}")
+                except Exception as e:
+                    self.logger.error(f"Failed to create default config: {e}")
+
+            self.config = default_config_path
+            self.logger.info(f"Using config: {dark_grey}{self.config}{reset}")
+        else:
+            self.config = config
+            self.logger.info(f"Using config: {dark_grey}{self.config}{reset}")
 
     def signal_handler(self, signum, frame):
         """Handles shutdown signal."""
@@ -154,7 +193,10 @@ class SubCat:
         if self.exit_event.is_set():
             return []
         try:
-            module = importlib.import_module(f"modules.{module_name}")
+            if __package__:
+                module = importlib.import_module(f"subcat.modules.{module_name}")
+            else:
+                module = importlib.import_module(f"modules.{module_name}")
             results = module.returnDomains(self.domain, self.logger, self.config, self.reverse, self.scope)
             valid = [s.replace('*.', '') for s in results if self._validate_subdomain(s)]
             with self.lock:
@@ -168,18 +210,21 @@ class SubCat:
     def _load_modules(self) -> List[str]:
         """Loads available subdomain modules, optionally filtering for reverse lookup support."""
         modules = []
-        module_dir = os.path.join(os.path.dirname(__file__), 'modules')
-        if not os.path.exists(module_dir):
+        if __package__:
+            module_dir = pkg_resources.files("subcat.modules")
+        else:
+            module_dir = pathlib.Path(os.path.join(os.path.dirname(__file__), 'modules'))
+        if not __package__ and not module_dir.exists():
             self.logger.warn(f"Modules directory missing: {module_dir}")
             return modules
         allowed = [s.lower() for s in self.sources] if self.sources else None
         exclude = [e.lower() for e in self.exclude_sources] if self.exclude_sources else None
-        import importlib.util
-        import importlib
 
-        for fname in os.listdir(module_dir):
+        for entry in module_dir.iterdir():  # Changed from os.listdir(module_dir)
+            fname = entry.name  # Get the filename from the entry
             if fname.endswith('.py') and fname != '__init__.py':
                 module_name = fname[:-3]
+
                 if allowed is not None and module_name.lower() not in allowed:
                     continue
                 if exclude is not None and module_name.lower() in exclude:
@@ -187,7 +232,10 @@ class SubCat:
                 try:
                     # When reverse lookup is needed, import the module to check its capabilities.
                     if self.reverse:
-                        mod = importlib.import_module(f"modules.{module_name}")
+                        if __package__:
+                            mod = importlib.import_module(f"subcat.modules.{module_name}")
+                        else:
+                            mod = importlib.import_module(f"modules.{module_name}")
                         # Option 1: Check a module-level flag
                         if not getattr(mod, "REVERSE_LOOKUP_SUPPORTED", False):
                             continue
@@ -199,7 +247,10 @@ class SubCat:
                         modules.append(module_name)
                     else:
                         # For normal mode, use the original check without importing.
-                        spec = importlib.util.find_spec(f"modules.{module_name}")
+                        if __package__:
+                            spec = importlib.util.find_spec(f"subcat.modules.{module_name}")
+                        else:
+                            spec = importlib.util.find_spec(f"modules.{module_name}")
                         if spec and spec.loader and hasattr(spec.loader, 'load_module'):
                             modules.append(module_name)
                         else:
@@ -464,8 +515,7 @@ def argParserCommands():
                             help="Enable reverse lookup mode for enumeration (loads only modules supporting reverse lookup). Requires --scope to be provided.")
     config_grp = parser.add_argument_group('CONFIGURATION')
     config_grp.add_argument('-t', '--threads', type=int, default=50, help="Number of concurrent threads (default: 50)")
-    config_grp.add_argument('-c', '--config', help="Path to YAML config file (default: config.yaml)",
-                            default="config.yaml")
+    config_grp.add_argument('-c', '--config', help="Path to YAML config file (default: config.yaml)")
     debug_grp = parser.add_argument_group('DEBUG')
     debug_grp.add_argument('-v', '--verbose', action='count', default=0,
                            help="Increase verbosity level (-v, -vv, -vvv)")
@@ -475,7 +525,8 @@ def argParserCommands():
     return parser
 
 
-if __name__ == "__main__":
+def main():
+    global bold, red, yellow, reset, green
     try:
         args = argParserCommands().parse_args()
         if args.no_colors:
@@ -493,11 +544,19 @@ if __name__ == "__main__":
             logger = Logger(level=args.verbose + 1, silent=args.silent)
         if args.list_modules:
             banner()
-            module_dir = os.path.join(os.path.dirname(__file__), 'modules')
-            if not os.path.exists(module_dir):
-                logger.error(f"Modules directory missing: {module_dir}")
+            try:
+                if __package__:
+                    module_dir = pkg_resources.files("subcat.modules")
+                else:
+                    module_dir = pathlib.Path(os.path.join(os.path.dirname(__file__), 'modules'))
+            except Exception as e:
+                logger.error(f"Error accessing subcat.modules resources: {e}")
                 sys.exit(1)
-            modules = [f[:-3] for f in os.listdir(module_dir) if f.endswith('.py') and f != '__init__.py']
+            # Use the Traversable API to iterate over the files.
+            modules = [
+                f.name[:-3] for f in module_dir.iterdir()
+                if f.name.endswith('.py') and f.name != '__init__.py'
+            ]
             logger.info(f"{bold}{red}{len(modules)} {yellow}Available modules: {reset}")
             for module in modules:
                 logger.result(f"{green}{module}{reset}")
@@ -553,3 +612,7 @@ if __name__ == "__main__":
         logger = Logger()
         logger.error(f"Fatal error: {e}")
         sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

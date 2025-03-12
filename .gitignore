@@ -1,10 +1,12 @@
 # Byte-compiled / optimized / DLL files
+config.yaml
 __pycache__/
 *.py[cod]
 *$py.class
 
 # C extensions
 *.so
+*.yaml
 
 # Distribution / packaging
 .Python
@@ -132,5 +134,3 @@ htmlcov/
 .coverage.*
 *,cover
 
-# Ignore sensitive configuration file
-config.yaml
