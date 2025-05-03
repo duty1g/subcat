@@ -12,18 +12,23 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
-from typing import List, Optional, Set, Dict
+from typing import List, Optional, Set, Dict, Any, Union
 from queue import Queue
 import importlib.resources as pkg_resources
+import json
 
 if __package__:
     from .logger import Logger
     from .navigator import Navigator
     from .detector import Detector
+    from .cache import Cache
+    from .output import OutputFormatter
 else:
     from logger import Logger
     from navigator import Navigator
     from detector import Detector
+    from cache import Cache
+    from output import OutputFormatter
 
 reset = '\033[m'
 light_grey = '\033[37m'
@@ -52,18 +57,18 @@ version = '1.3.1'
 
 
 def banner():
-    head = ''' 
-\t                      {1};            ;                  
-\t                    {0}ρ{1}ββΚ          ;ββΝ                
-\t                  {0}έΆχββββββββββββββββββΒ              
-\t                {0};ΣΆχΜ΅΅ΫΝββββββββ Ϋ΅ΫβββΝ            
-\t               {0}όΆΆχβ   {2}Ά{1}   ββββ΅  {2}Ά΅{1}  βββββ           
-\t              {0}χΆΆΆφβΒ; {2}Ϋ΅{1};έββββΒ; {2}Ϋ΅{1} ρββββββ          
-\t              {0}ΆΆΆΆδβββββββββ{0};χ{1}ββββββμβββββββ          
-\t              {0}ΪχχχχΧβββββββββββββββββββθθθθΚ          
-\t             {0}·ϊβθβζ  {1}Ϊθθβββββββββββββββμ ;όβΫ΅        
-\t              {0}·΅   ΅ΫΫΫΆΆθ{1}βββββββββθθΫ΅   ΅Ϋ΅         
-\t                      {0};ΣΆθββββΒΝρρρμ                  
+    head = '''
+\t                      {1};            ;
+\t                    {0}ρ{1}ββΚ          ;ββΝ
+\t                  {0}έΆχββββββββββββββββββΒ
+\t                {0};ΣΆχΜ΅΅ΫΝββββββββ Ϋ΅ΫβββΝ
+\t               {0}όΆΆχβ   {2}Ά{1}   ββββ΅  {2}Ά΅{1}  βββββ
+\t              {0}χΆΆΆφβΒ; {2}Ϋ΅{1};έββββΒ; {2}Ϋ΅{1} ρββββββ
+\t              {0}ΆΆΆΆδβββββββββ{0};χ{1}ββββββμβββββββ
+\t              {0}ΪχχχχΧβββββββββββββββββββθθθθΚ
+\t             {0}·ϊβθβζ  {1}Ϊθθβββββββββββββββμ ;όβΫ΅
+\t              {0}·΅   ΅ΫΫΫΆΆθ{1}βββββββββθθΫ΅   ΅Ϋ΅
+\t                      {0};ΣΆθββββΒΝρρρμ
 \t                     {0};ΣΆΆβββββββββββμ{3}
 \t ▄∞∞∞∞∞▄, ╒∞∞▄   ∞∞▄ ▄∞∞∞∞∞∞▄   ,▄∞∞∞∞▄      ▄∞∞4▄  ╒∞∞∞∞∞∞∞▄,
 \t▐▄ ═▄▄▄ ▐█▐ ,▀  j' █▌█  ▄▄▄ ▀█▌█▀ ╓▄▄  ▀▄  ¡█  , ▐█ ▐▄▄▄  ▄▄██
@@ -71,9 +76,9 @@ def banner():
 \tj▀▀███▌ ▐█▐  ▀▌▄█  ▀▀█ ▐███  █▌▄ ▀█▄▄▀ ▐█M▀.       ▀█▄.▀ J▀
 \t╚▄,,¬¬⌐▄█▌ ▀▄,,, ▄██ █,,,,,▓██▌ ▀▄,,,,▄█╩j▌,██▀▀▀▀▌,█▌`█,▐█
 \t  ▀▀▀▀▀▀▀    ▀▀▀▀▀▀ ""▀▀▀▀▀▀      ▀▀▀""`  ▀▀▀     ▀▀▀   ▀▀▀
-\t               {0}΅qΆΆΆΆ{1}βββββββββββββββββββββΡ΅  
-\t                  {0}ΫθΆΆΆ{1}ββββββββββββββββΡ΅         
-\t                      {1}΅ΫΫΫ΅ΝNNΝΫΫΫΐ΅Ϋ      
+\t               {0}΅qΆΆΆΆ{1}βββββββββββββββββββββΡ΅
+\t                  {0}ΫθΆΆΆ{1}ββββββββββββββββΡ΅
+\t                      {1}΅ΫΫΫ΅ΝNNΝΫΫΫΐ΅Ϋ
 \t                     v{5}{{{2}{6}{5}#dev}}{0}@{3}duty1g{1}
 '''
     head = head.format(light_grey, dark_grey, red, yellow, reset, green, version)
@@ -98,7 +103,10 @@ class SubCat:
                  match_codes: Optional[List[int]] = None,
                  sources: Optional[List[str]] = None,
                  exclude_sources: Optional[List[str]] = None,
-                 config: str = 'config.yaml'):
+                 config: str = 'config.yaml',
+                 use_cache: bool = True,
+                 cache_ttl: int = 86400,
+                 output_format: str = 'txt'):
         self.domain = domain.lower().strip()
         self.threads = threads
         self.match_codes = match_codes or []
@@ -112,11 +120,30 @@ class SubCat:
         self.tech = tech
         self.reverse = reverse
         self.output = output
+        self.output_format = output_format.lower()
         self.found_domains = set()
         self.processed_domains = set()
+        self.processed_results = []  # Store processed results for output
         self.lock = Lock()
         self.exit_event = threading.Event()
         self.scope = self._load_scope(scope) if scope else None
+        self.use_cache = use_cache
+        self.cache_ttl = cache_ttl
+
+        # Validate output format
+        if self.output_format not in OutputFormatter.FORMATS:
+            if self.logger:
+                self.logger.warn(f"Unsupported output format: {self.output_format}. Using 'txt' instead.")
+            self.output_format = 'txt'
+
+        # Initialize cache if enabled
+        if self.use_cache:
+            self.cache = Cache(ttl=self.cache_ttl)
+            # Clear expired cache entries
+            cleared = self.cache.clear_expired()
+            if cleared > 0 and self.logger:
+                self.logger.debug(f"Cleared {cleared} expired cache entries")
+
         signal.signal(signal.SIGINT, self.signal_handler)
 
         if config is None:
@@ -189,15 +216,37 @@ class SubCat:
         return self.domain in subdomain.lower()
 
     def _module_worker(self, module_name: str) -> List[str]:
-        """Runs a subdomain enumeration module."""
+        """Runs a subdomain enumeration module with caching support."""
         if self.exit_event.is_set():
             return []
+
+        # Create a cache key based on module name, domain, and reverse mode
+        cache_key = f"{module_name}:{self.domain}:{self.reverse}"
+
+        # Check cache first if enabled
+        if self.use_cache:
+            cached_results = self.cache.get(cache_key)
+            if cached_results is not None:
+                self.logger.debug(f"Using cached results for {module_name}")
+                valid = [s.replace('*.', '') for s in cached_results if self._validate_subdomain(s)]
+                with self.lock:
+                    new_domains = [s for s in valid if s not in self.found_domains]
+                    self.found_domains.update(new_domains)
+                return new_domains
+
         try:
             if __package__:
                 module = importlib.import_module(f"subcat.modules.{module_name}")
             else:
                 module = importlib.import_module(f"modules.{module_name}")
+
+            # Get results from the module
             results = module.returnDomains(self.domain, self.logger, self.config, self.reverse, self.scope)
+
+            # Cache the results if enabled
+            if self.use_cache and results:
+                self.cache.set(cache_key, results)
+
             valid = [s.replace('*.', '') for s in results if self._validate_subdomain(s)]
             with self.lock:
                 new_domains = [s for s in valid if s not in self.found_domains]
@@ -309,15 +358,30 @@ class SubCat:
             if domain in self.processed_domains:
                 return None
             self.processed_domains.add(domain)
+
+        # Initialize result data structure for structured output
+        result_data = {
+            'domain': domain,
+            'ip': None,
+            'status': None,
+            'protocol': None,
+            'title': None,
+            'technologies': None,
+            'is_alive': False
+        }
+
         ip_address = None
         if self.ip or self.scope:
             try:
                 ip_address = socket.gethostbyname(domain)
+                result_data['ip'] = ip_address
             except socket.gaierror:
                 ip_address = None
+
         if self.scope:
             if ip_address is None or ip_address not in self.scope:
                 return None
+
         if self.status_code or self.title or self.tech or self.up:
             info = self.get_domain_status(domain)
             protocol = info["protocol"] if info["protocol"] else "http"
@@ -325,15 +389,24 @@ class SubCat:
             req = info["response"]
             title_text = info["title"]
 
+            result_data['protocol'] = protocol
+            result_data['status'] = status
+            result_data['title'] = title_text
+            result_data['is_alive'] = status is not None
+
             # If the domain is dead, output a specific schema.
-            # print(str(status).upper())
             result = ''
             if status is None:
                 if not self.up:
                     result = f"{domain} {red}[DEAD]{reset}"
                     if self.ip and ip_address:
                         result += f" {blue}[{ip_address}]{reset}"
-                return result
+
+                    # Store the processed result data
+                    with self.lock:
+                        self.processed_results.append(result_data)
+
+                    return result
 
             # Otherwise, build the result as usual.
             result = f"{protocol}://{domain}"
@@ -362,12 +435,19 @@ class SubCat:
                     if tech_list:
                         techs = ",".join(tech_list)
                         result += f" {yellow}[{techs}]{reset}"
+                        result_data['technologies'] = tech_list
                 except Exception as e:
                     self.logger.debug(f"Tech detection failed for {domain}: {e}")
         else:
             result = domain
+
         if self.ip and ip_address:
             result += f" {blue}[{ip_address}]{reset}"
+
+        # Store the processed result data
+        with self.lock:
+            self.processed_results.append(result_data)
+
         return result
 
     def _animate_spinner(self, stop_event):
@@ -413,12 +493,7 @@ class SubCat:
                         sys.stderr.write('\r\033[K')
                         sys.stderr.flush()
                         self.logger.result(res)
-                    if self.output:
-                        try:
-                            with open(self.output, 'a') as f:
-                                f.write(res + '\n')
-                        except Exception as e:
-                            self.logger.error(f"Output write error: {e}")
+                    # We'll handle output at the end of the run method
 
             consumer_thread = threading.Thread(target=consumer)
             consumer_thread.start()
@@ -459,6 +534,51 @@ class SubCat:
             time_str = " ".join(time_parts)
             self.logger.info(
                 f"Completed with {len(self.processed_domains)} subdomains for {red}{self.domain}{reset} in {time_str}")
+
+            # Write output file if specified
+            if self.output:
+                try:
+                    # Create metadata for structured output formats
+                    metadata = {
+                        'domain': self.domain,
+                        'timestamp': time.time(),
+                        'duration_seconds': elapsed,
+                        'total_domains': len(self.processed_domains),
+                        'settings': {
+                            'status_code': self.status_code,
+                            'title': self.title,
+                            'ip': self.ip,
+                            'up': self.up,
+                            'tech': self.tech,
+                            'reverse': self.reverse
+                        }
+                    }
+
+                    # Get domain list for output
+                    domain_list = []
+                    if self.output_format == 'txt':
+                        # For text format, just use the domain names
+                        domain_list = list(self.processed_domains)
+                    else:
+                        # For structured formats, use the full result data
+                        domain_list = self.processed_results
+
+                    # Determine output format from file extension if not explicitly set
+                    output_format = self.output_format
+                    _, ext = os.path.splitext(self.output)
+                    if ext and ext[1:].lower() in OutputFormatter.FORMATS:
+                        output_format = ext[1:].lower()
+
+                    # Write the output
+                    if OutputFormatter.write(domain_list, self.output, metadata):
+                        self.logger.info(f"Results written to {self.output} in {output_format} format")
+                    else:
+                        self.logger.error(f"Failed to write results to {self.output}")
+                except Exception as e:
+                    self.logger.error(f"Output write error: {e}")
+
+            # Return the processed domains for programmatic use
+            return list(self.processed_domains)
         except Exception as e:
             self.logger.error(f"Fatal error: {e}")
             sys.exit(1)
@@ -493,6 +613,8 @@ def argParserCommands():
                            )
     output_grp = parser.add_argument_group('OUTPUT')
     output_grp.add_argument("-o", "--output", help="Output file")
+    output_grp.add_argument('-of', '--output-format', choices=OutputFormatter.FORMATS, default='txt',
+                           help=f"Output format (default: txt, available: {', '.join(OutputFormatter.FORMATS)})")
     output_grp.add_argument('-title', '--title', action='store_true', help="Show page titles")
     output_grp.add_argument('-ip', '--ip', action='store_true', help="Resolve IP addresses")
     output_grp.add_argument('-sc', '--status-code', dest='status_code', action='store_true',
@@ -516,6 +638,10 @@ def argParserCommands():
     config_grp = parser.add_argument_group('CONFIGURATION')
     config_grp.add_argument('-t', '--threads', type=int, default=50, help="Number of concurrent threads (default: 50)")
     config_grp.add_argument('-c', '--config', help="Path to YAML config file (default: config.yaml)")
+    config_grp.add_argument('--no-cache', action='store_true', help="Disable caching of results")
+    config_grp.add_argument('--cache-ttl', type=int, default=86400,
+                           help="Time-to-live for cache entries in seconds (default: 86400 = 24 hours)")
+    config_grp.add_argument('--clear-cache', action='store_true', help="Clear all cached data before running")
     debug_grp = parser.add_argument_group('DEBUG')
     debug_grp.add_argument('-v', '--verbose', action='count', default=0,
                            help="Increase verbosity level (-v, -vv, -vvv)")
@@ -542,6 +668,14 @@ def main():
             bright_red = ""
         else:
             logger = Logger(level=args.verbose + 1, silent=args.silent)
+        # Handle cache clearing if requested
+        if args.clear_cache:
+            cache = Cache()
+            if cache.clear():
+                logger.info("Cache cleared successfully")
+            else:
+                logger.error("Failed to clear cache")
+
         if args.list_modules:
             banner()
             try:
@@ -603,7 +737,10 @@ def main():
                 match_codes=args.match_codes,
                 sources=args.sources,
                 exclude_sources=args.exclude_sources,
-                config=args.config
+                config=args.config,
+                use_cache=not args.no_cache,
+                cache_ttl=args.cache_ttl,
+                output_format=args.output_format
             ).run()
     except KeyboardInterrupt:
         logger = Logger()
