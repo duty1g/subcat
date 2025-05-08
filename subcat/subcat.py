@@ -129,12 +129,18 @@ class SubCat:
         self.scope = self._load_scope(scope) if scope else None
         self.use_cache = use_cache
         self.cache_ttl = cache_ttl
+        self.output_file_handle = None
+        self.output_initialized = False
 
         # Validate output format
         if self.output_format not in OutputFormatter.FORMATS:
             if self.logger:
                 self.logger.warn(f"Unsupported output format: {self.output_format}. Using 'txt' instead.")
             self.output_format = 'txt'
+
+        # Initialize output file if specified
+        if self.output:
+            self._initialize_output_file()
 
         # Initialize cache if enabled
         if self.use_cache:
@@ -169,6 +175,15 @@ class SubCat:
         """Handles shutdown signal."""
         self.exit_event.set()
         self.logger.info("Shutting down gracefully...")
+
+        # Finalize output file if it's open
+        if self.output and self.output_file_handle:
+            try:
+                self._finalize_output_file()
+                self.logger.info(f"Output file finalized during shutdown: {self.output}")
+            except Exception as e:
+                self.logger.error(f"Error finalizing output file during shutdown: {e}")
+
         os._exit(1)
 
     def _load_scope(self, scope_input: str) -> Set[str]:
@@ -350,6 +365,166 @@ class SubCat:
                     info["title"] = ""
         return info
 
+    def _initialize_output_file(self):
+        """Initialize the output file with appropriate headers based on format."""
+        try:
+            # Determine output format from file extension if not explicitly set
+            output_format = self.output_format
+            _, ext = os.path.splitext(self.output)
+            if ext and ext[1:].lower() in OutputFormatter.FORMATS:
+                output_format = ext[1:].lower()
+
+            # Open the file for writing
+            self.output_file_handle = open(self.output, 'w')
+
+            # Write format-specific headers
+            if output_format == 'json':
+                # Start JSON array or object
+                self.output_file_handle.write('{\n')
+                self.output_file_handle.write('  "metadata": {\n')
+                self.output_file_handle.write(f'    "domain": "{self.domain}",\n')
+                self.output_file_handle.write(f'    "timestamp": {time.time()},\n')
+                self.output_file_handle.write('    "settings": {\n')
+                self.output_file_handle.write(f'      "status_code": {str(self.status_code).lower()},\n')
+                self.output_file_handle.write(f'      "title": {str(self.title).lower()},\n')
+                self.output_file_handle.write(f'      "ip": {str(self.ip).lower()},\n')
+                self.output_file_handle.write(f'      "up": {str(self.up).lower()},\n')
+                self.output_file_handle.write(f'      "tech": {str(self.tech).lower()},\n')
+                self.output_file_handle.write(f'      "reverse": {str(self.reverse).lower()}\n')
+                self.output_file_handle.write('    }\n')
+                self.output_file_handle.write('  },\n')
+                self.output_file_handle.write('  "domains": [\n')
+            elif output_format == 'csv':
+                # Write CSV header
+                if self.status_code or self.title or self.ip or self.tech:
+                    headers = ['domain']
+                    if self.ip:
+                        headers.append('ip')
+                    if self.status_code:
+                        headers.append('status')
+                    if self.title:
+                        headers.append('title')
+                    if self.tech:
+                        headers.append('technologies')
+                    self.output_file_handle.write(','.join(headers) + '\n')
+                else:
+                    self.output_file_handle.write('domain\n')
+            elif output_format == 'xml':
+                # Write XML header
+                self.output_file_handle.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+                self.output_file_handle.write('<subcat_results>\n')
+                self.output_file_handle.write('  <metadata>\n')
+                self.output_file_handle.write(f'    <domain>{self.domain}</domain>\n')
+                self.output_file_handle.write(f'    <timestamp>{time.time()}</timestamp>\n')
+                self.output_file_handle.write('    <settings>\n')
+                self.output_file_handle.write(f'      <status_code>{str(self.status_code).lower()}</status_code>\n')
+                self.output_file_handle.write(f'      <title>{str(self.title).lower()}</title>\n')
+                self.output_file_handle.write(f'      <ip>{str(self.ip).lower()}</ip>\n')
+                self.output_file_handle.write(f'      <up>{str(self.up).lower()}</up>\n')
+                self.output_file_handle.write(f'      <tech>{str(self.tech).lower()}</tech>\n')
+                self.output_file_handle.write(f'      <reverse>{str(self.reverse).lower()}</reverse>\n')
+                self.output_file_handle.write('    </settings>\n')
+                self.output_file_handle.write('  </metadata>\n')
+                self.output_file_handle.write('  <domains>\n')
+
+            self.output_initialized = True
+            self.logger.debug(f"Output file initialized: {self.output} in {output_format} format")
+        except Exception as e:
+            self.logger.error(f"Failed to initialize output file: {e}")
+            self.output_file_handle = None
+
+    def _write_domain_to_output(self, domain: str, result_data: Dict[str, Any]):
+        """Write a domain to the output file in real-time."""
+        if not self.output_file_handle or not self.output_initialized:
+            return
+
+        try:
+            # Determine output format from file extension if not explicitly set
+            output_format = self.output_format
+            _, ext = os.path.splitext(self.output)
+            if ext and ext[1:].lower() in OutputFormatter.FORMATS:
+                output_format = ext[1:].lower()
+
+            # Write domain in the appropriate format
+            if output_format == 'txt':
+                self.output_file_handle.write(f"{domain}\n")
+            elif output_format == 'json':
+                # Write JSON object for this domain
+                json_str = json.dumps(result_data, indent=4)
+                # Remove the first and last brackets and add a comma if not the first entry
+                json_str = json_str.strip()
+                if len(self.processed_domains) > 1:
+                    self.output_file_handle.write(',\n')
+                self.output_file_handle.write('    ' + json_str)
+            elif output_format == 'csv':
+                # Write CSV row
+                if self.status_code or self.title or self.ip or self.tech:
+                    row = [domain]
+                    if self.ip:
+                        row.append(result_data.get('ip', ''))
+                    if self.status_code:
+                        row.append(str(result_data.get('status', '')))
+                    if self.title:
+                        row.append(result_data.get('title', ''))
+                    if self.tech:
+                        techs = result_data.get('technologies', [])
+                        row.append(';'.join(techs) if techs else '')
+                    self.output_file_handle.write(','.join([str(x).replace(',', '\\,') for x in row]) + '\n')
+                else:
+                    self.output_file_handle.write(f"{domain}\n")
+            elif output_format == 'xml':
+                # Write XML element for this domain
+                self.output_file_handle.write(f'    <domain>\n')
+                self.output_file_handle.write(f'      <name>{domain}</name>\n')
+                if self.ip and result_data.get('ip'):
+                    self.output_file_handle.write(f'      <ip>{result_data["ip"]}</ip>\n')
+                if self.status_code and result_data.get('status') is not None:
+                    self.output_file_handle.write(f'      <status>{result_data["status"]}</status>\n')
+                if self.title and result_data.get('title'):
+                    self.output_file_handle.write(f'      <title>{result_data["title"]}</title>\n')
+                if self.tech and result_data.get('technologies'):
+                    self.output_file_handle.write(f'      <technologies>\n')
+                    for tech in result_data.get('technologies', []):
+                        self.output_file_handle.write(f'        <technology>{tech}</technology>\n')
+                    self.output_file_handle.write(f'      </technologies>\n')
+                self.output_file_handle.write(f'    </domain>\n')
+
+            # Flush to ensure real-time writing
+            self.output_file_handle.flush()
+        except Exception as e:
+            self.logger.error(f"Failed to write domain to output file: {e}")
+
+    def _finalize_output_file(self):
+        """Finalize the output file with appropriate footers based on format."""
+        if not self.output_file_handle or not self.output_initialized:
+            return
+
+        try:
+            # Determine output format from file extension if not explicitly set
+            output_format = self.output_format
+            _, ext = os.path.splitext(self.output)
+            if ext and ext[1:].lower() in OutputFormatter.FORMATS:
+                output_format = ext[1:].lower()
+
+            # Write format-specific footers
+            if output_format == 'json':
+                self.output_file_handle.write('\n  ],\n')
+                self.output_file_handle.write(f'  "count": {len(self.processed_domains)},\n')
+                self.output_file_handle.write(f'  "duration_seconds": {time.time() - self.start_time}\n')
+                self.output_file_handle.write('}\n')
+            elif output_format == 'xml':
+                self.output_file_handle.write('  </domains>\n')
+                self.output_file_handle.write(f'  <count>{len(self.processed_domains)}</count>\n')
+                self.output_file_handle.write(f'  <duration_seconds>{time.time() - self.start_time}</duration_seconds>\n')
+                self.output_file_handle.write('</subcat_results>\n')
+
+            # Close the file
+            self.output_file_handle.close()
+            self.output_file_handle = None
+            self.logger.info(f"Output file finalized: {self.output}")
+        except Exception as e:
+            self.logger.error(f"Failed to finalize output file: {e}")
+
     def _process_domain(self, domain: str) -> Optional[str]:
         """Processes a discovered subdomain."""
         if self.exit_event.is_set():
@@ -405,6 +580,9 @@ class SubCat:
                     # Store the processed result data
                     with self.lock:
                         self.processed_results.append(result_data)
+                        # Write to output file in real-time if specified
+                        if self.output:
+                            self._write_domain_to_output(domain, result_data)
 
                     return result
 
@@ -447,6 +625,9 @@ class SubCat:
         # Store the processed result data
         with self.lock:
             self.processed_results.append(result_data)
+            # Write to output file in real-time if specified
+            if self.output:
+                self._write_domain_to_output(domain, result_data)
 
         return result
 
@@ -467,7 +648,7 @@ class SubCat:
 
     def run(self):
         """Runs subdomain enumeration."""
-        start_time = time.time()
+        self.start_time = time.time()
         try:
             self.logger.info(f"Starting enumeration for {red}{self.domain}{reset}")
             modules = self._load_modules()
@@ -520,7 +701,7 @@ class SubCat:
             result_queue.put(None)
             consumer_thread.join()
             end_time = time.time()
-            elapsed = end_time - start_time
+            elapsed = end_time - self.start_time
             minutes = int(elapsed // 60)
             seconds = int(elapsed % 60)
             milliseconds = int((elapsed % 1) * 1000)
@@ -535,33 +716,11 @@ class SubCat:
             self.logger.info(
                 f"Completed with {len(self.processed_domains)} subdomains for {red}{self.domain}{reset} in {time_str}")
 
-            # Write output file if specified
+            # Finalize output file if specified
             if self.output:
                 try:
-                    # Create metadata for structured output formats
-                    metadata = {
-                        'domain': self.domain,
-                        'timestamp': time.time(),
-                        'duration_seconds': elapsed,
-                        'total_domains': len(self.processed_domains),
-                        'settings': {
-                            'status_code': self.status_code,
-                            'title': self.title,
-                            'ip': self.ip,
-                            'up': self.up,
-                            'tech': self.tech,
-                            'reverse': self.reverse
-                        }
-                    }
-
-                    # Get domain list for output
-                    domain_list = []
-                    if self.output_format == 'txt':
-                        # For text format, just use the domain names
-                        domain_list = list(self.processed_domains)
-                    else:
-                        # For structured formats, use the full result data
-                        domain_list = self.processed_results
+                    # Finalize the output file
+                    self._finalize_output_file()
 
                     # Determine output format from file extension if not explicitly set
                     output_format = self.output_format
@@ -569,13 +728,9 @@ class SubCat:
                     if ext and ext[1:].lower() in OutputFormatter.FORMATS:
                         output_format = ext[1:].lower()
 
-                    # Write the output
-                    if OutputFormatter.write(domain_list, self.output, metadata):
-                        self.logger.info(f"Results written to {self.output} in {output_format} format")
-                    else:
-                        self.logger.error(f"Failed to write results to {self.output}")
+                    self.logger.info(f"Results written to {self.output} in {output_format} format")
                 except Exception as e:
-                    self.logger.error(f"Output write error: {e}")
+                    self.logger.error(f"Output finalization error: {e}")
 
             # Return the processed domains for programmatic use
             return list(self.processed_domains)
