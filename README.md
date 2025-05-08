@@ -1,5 +1,5 @@
 
-# SubCat v1.3.1
+# SubCat v1.4.0
 
 ![alt text](https://img.shields.io/github/stars/duty1g/subcat "")
 ![alt text](https://img.shields.io/github/languages/top/duty1g/subcat "")
@@ -37,6 +37,9 @@ Built to comply with licensing and usage restrictions of its passive sources, Su
 - **STDIN/STDOUT Integration:** Seamlessly integrate with other tools and workflows.
 - **IP Scope Filtering:** Filter results by IP addresses using a provided scope (CIDR or file-based).
 - **Detailed Output:** Options to display HTTP status codes, page titles, IP addresses, and technology detection.
+- **Multiple Output Formats:** Export results in TXT, JSON, CSV, and XML formats for easy integration with other tools.
+- **Intelligent Caching:** Cache API responses to improve performance and reduce external API calls.
+- **Advanced Rate Limiting:** Domain-specific rate limiting to prevent API throttling and ensure reliable results.
 - **Reverse Lookup Mode:** Supports reverse lookup to load only modules that handle reverse enumeration (requires a valid IP scope).
 - **Custom Module Selection:** Include or exclude specific modules via command-line flags.
 - **Enhanced Multi-threading:** Uses 50 concurrent threads by default for rapid processing.
@@ -50,9 +53,9 @@ pip install subcat
 
 ## Post Installation
 
-Before querying third-party services, configure your API keys in the `config.yaml` file.  
- 
-By default, SubCat looks for the configuration file in your user's home directory under `~/.subcat/config.yaml`. You can also specify a custom config path using the `-c` or `--config` option.  
+Before querying third-party services, configure your API keys in the `config.yaml` file.
+
+By default, SubCat looks for the configuration file in your user's home directory under `~/.subcat/config.yaml`. You can also specify a custom config path using the `-c` or `--config` option.
 
 Not all modules require an API key, but the following sources do:
 
@@ -71,7 +74,7 @@ Not all modules require an API key, but the following sources do:
 - **URLScan** (for advanced usage)
 
 
-An example provider config file 
+An example provider config file
 
 ```yaml
 
@@ -111,12 +114,14 @@ INPUT:
   -d DOMAIN, --domain DOMAIN
                         Target domain to scan
   -l LIST, --list LIST  File containing list of domains
-  --scope SCOPE         IP scope filter: provide either a file containing CIDR ranges or a single IP/CIDR string (e.g., '8.8.8.8' or  
+  --scope SCOPE         IP scope filter: provide either a file containing CIDR ranges or a single IP/CIDR string (e.g., '8.8.8.8' or
                         '8.8.4.0/24'). This filter is required when reverse lookup is enabled.
 
 OUTPUT:
   -o OUTPUT, --output OUTPUT
                         Output file
+  -of {txt,json,csv,xml}, --output-format {txt,json,csv,xml}
+                        Output format (default: txt, available: txt, json, csv, xml)
   -title, --title       Show page titles
   -ip, --ip             Resolve IP addresses
   -sc, --status-code    Show HTTP status codes
@@ -134,7 +139,7 @@ SOURCE:
                         Specific sources to use for discovery (comma-separated, e.g., crtsh,wayback)
   -es EXCLUDE_SOURCES, --exclude-sources EXCLUDE_SOURCES
                         Sources to exclude from enumeration (comma-separated, e.g., alienvault,crtsh)
-  -r, --reverse         Enable reverse lookup mode for enumeration (loads only modules supporting reverse lookup). Requires --scope   
+  -r, --reverse         Enable reverse lookup mode for enumeration (loads only modules supporting reverse lookup). Requires --scope
                         to be provided.
 
 CONFIGURATION:
@@ -142,6 +147,10 @@ CONFIGURATION:
                         Number of concurrent threads (default: 50)
   -c CONFIG, --config CONFIG
                         Path to YAML config file (default: config.yaml)
+  --no-cache            Disable caching of results
+  --cache-ttl CACHE_TTL
+                        Time-to-live for cache entries in seconds (default: 86400 = 24 hours)
+  --clear-cache         Clear all cached data before running
 
 DEBUG:
   -v, --verbose         Increase verbosity level (-v, -vv, -vvv)
@@ -154,20 +163,20 @@ Here are several examples to help you get started:
 
 **Scan a Single Domain:**
    ```console
-subcat -d hackerone.com --sc --title --tech --up                                                                
+subcat -d hackerone.com --sc --title --tech --up
 
- 
-                              ;            ;                  
-                            ρββΚ          ;ββΝ                
-                          έΆχββββββββββββββββββΒ              
-                        ;ΣΆχΜ΅΅ΫΝββββββββ Ϋ΅ΫβββΝ            
-                       όΆΆχβ   Ά   ββββ΅  Ά΅  βββββ           
-                      χΆΆΆφβΒ; Ϋ΅;έββββΒ; Ϋ΅ ρββββββ          
-                      ΆΆΆΆδβββββββββ;χββββββμβββββββ          
-                      ΪχχχχΧβββββββββββββββββββθθθθΚ          
-                     ·ϊβθβζ  Ϊθθβββββββββββββββμ ;όβΫ΅        
-                      ·΅   ΅ΫΫΫΆΆθβββββββββθθΫ΅   ΅Ϋ΅         
-                              ;ΣΆθββββΒΝρρρμ                  
+
+                              ;            ;
+                            ρββΚ          ;ββΝ
+                          έΆχββββββββββββββββββΒ
+                        ;ΣΆχΜ΅΅ΫΝββββββββ Ϋ΅ΫβββΝ
+                       όΆΆχβ   Ά   ββββ΅  Ά΅  βββββ
+                      χΆΆΆφβΒ; Ϋ΅;έββββΒ; Ϋ΅ ρββββββ
+                      ΆΆΆΆδβββββββββ;χββββββμβββββββ
+                      ΪχχχχΧβββββββββββββββββββθθθθΚ
+                     ·ϊβθβζ  Ϊθθβββββββββββββββμ ;όβΫ΅
+                      ·΅   ΅ΫΫΫΆΆθβββββββββθθΫ΅   ΅Ϋ΅
+                              ;ΣΆθββββΒΝρρρμ
                              ;ΣΆΆβββββββββββμ
          ▄∞∞∞∞∞▄, ╒∞∞▄   ∞∞▄ ▄∞∞∞∞∞∞▄   ,▄∞∞∞∞▄      ▄∞∞4▄  ╒∞∞∞∞∞∞∞▄,
         ▐▄ ═▄▄▄ ▐█▐ ,▀  j' █▌█  ▄▄▄ ▀█▌█▀ ╓▄▄  ▀▄  ¡█  , ▐█ ▐▄▄▄  ▄▄██
@@ -175,10 +184,10 @@ subcat -d hackerone.com --sc --title --tech --up
         j▀▀███▌ ▐█▐  ▀▌▄█  ▀▀█ ▐███  █▌▄ ▀█▄▄▀ ▐█M▀.       ▀█▄.▀ J▀
         ╚▄,,¬¬⌐▄█▌ ▀▄,,, ▄██ █,,,,,▓██▌ ▀▄,,,,▄█╩j▌,██▀▀▀▀▌,█▌`█,▐█
           ▀▀▀▀▀▀▀    ▀▀▀▀▀▀ ""▀▀▀▀▀▀      ▀▀▀""`  ▀▀▀     ▀▀▀   ▀▀▀
-                       ΅qΆΆΆΆβββββββββββββββββββββΡ΅  
-                          ΫθΆΆΆββββββββββββββββΡ΅         
-                              ΅ΫΫΫ΅ΝNNΝΫΫΫΐ΅Ϋ      
-                             v{1.3.0#dev}@duty1g
+                       ΅qΆΆΆΆβββββββββββββββββββββΡ΅
+                          ΫθΆΆΆββββββββββββββββΡ΅
+                              ΅ΫΫΫ΅ΝNNΝΫΫΫΐ΅Ϋ
+                             v{1.4.0}@duty1g
 
 [07:43:51][INF]: Starting enumeration for hackerone.com
 [07:43:51][INF]: Loaded 19 modules
@@ -188,7 +197,7 @@ https://gslink.hackerone.com [404 Not Found] [Nginx,Amazon CloudFront,Amazon Web
 https://mta-sts.hackerone.com [Page not found &middot; GitHub] [GitHub Pages,Fastly]
 https://api.hackerone.com [HackerOne API] [Algolia,HSTS,Cloudflare]
 http://resources.hackerone.com [Sorry, no Folders found.] [Amazon Web Services]
-https://hackerone.com [HackerOne | #1 Trusted Securit] [Cloudflare,Drupal,Google Tag Manager,HSTS,Pantheon,PHP,Fastly,MariaDB,Nginx]  
+https://hackerone.com [HackerOne | #1 Trusted Securit] [Cloudflare,Drupal,Google Tag Manager,HSTS,Pantheon,PHP,Fastly,MariaDB,Nginx]
 https://mta-sts.forwarding.hackerone.com [Page not found &middot; GitHub] [Fastly,GitHub Pages]
 https://docs.hackerone.com [HackerOne Help Center] [Cloudflare,HSTS]
 https://support.hackerone.com [Sign into : HackerOne Support ] [HSTS,Envoy,Cloudflare,HTTP/3]
@@ -225,6 +234,47 @@ https://support.hackerone.com [Sign into : HackerOne Support ] [HSTS,Envoy,Cloud
    subcat -d example.com -s dnsdumpster,virustotal,urlscan -es digitalyama,anubis
    ```
 
+**Export Results in JSON Format:**
+   ```console
+   subcat -d example.com -o results.json -of json
+   ```
+
+**Export Results in CSV Format with Status Codes and IP Addresses:**
+   ```console
+   subcat -d example.com -o results.csv -of csv -sc -ip
+   ```
+
+**Save Results Using Specific Modules:**
+   ```console
+   subcat -d example.com -s ctrsh,wayback,hackertarget -o example_results.txt
+   ```
+   This command will:
+   - Scan only the example.com domain
+   - Use only the crt.sh, Wayback, and HackerTarget modules
+   - Save all discovered subdomains to example_results.txt
+
+**Save Results in Different Formats Using Specific Modules:**
+   ```console
+   # Save as JSON
+   subcat -d example.com -s ctrsh,wayback,hackertarget -o example_results.json -of json
+
+   # Save as CSV
+   subcat -d example.com -s ctrsh,wayback,hackertarget -o example_results.csv -of csv
+
+   # Save as XML
+   subcat -d example.com -s ctrsh,wayback,hackertarget -o example_results.xml -of xml
+   ```
+
+**Use Caching with Custom TTL:**
+   ```console
+   subcat -d example.com --cache-ttl 3600
+   ```
+
+**Clear Cache Before Running:**
+   ```console
+   subcat -d example.com --clear-cache
+   ```
+
 
 ## Available Modules
 
@@ -250,13 +300,52 @@ SubCat currently supports the following modules for passive subdomain discovery:
 - hackertarget
 - certspotter
 
-SubCat's modular architecture is designed for flexibility and ease of extension. 
+SubCat's modular architecture is designed for flexibility and ease of extension.
 
 If you have an idea for a new module or want to contribute improvements, feel free to submit a pull request. Your contributions help make SubCat even better!
 
+## New Features in v1.4.0
+
+### Multiple Output Formats
+SubCat now supports exporting results in multiple formats:
+- **TXT**: Simple text format with one subdomain per line
+- **JSON**: Structured JSON format with detailed information about each subdomain
+- **CSV**: CSV format for easy import into spreadsheets and databases
+- **XML**: XML format for integration with XML-based tools and workflows
+
+Example:
+```console
+subcat -d example.com -o results.json -of json
+```
+
+### Intelligent Caching
+SubCat now includes a caching system to improve performance and reduce API calls:
+- Cache API responses to avoid redundant requests
+- Configurable cache TTL (time-to-live)
+- Commands to manage the cache
+
+Example:
+```console
+# Use caching with a 1-hour TTL
+subcat -d example.com --cache-ttl 3600
+
+# Clear the cache before running
+subcat -d example.com --clear-cache
+
+# Disable caching
+subcat -d example.com --no-cache
+```
+
+### Advanced Rate Limiting
+SubCat now includes domain-specific rate limiting to prevent API throttling:
+- Automatically applies appropriate rate limits for different API providers
+- Handles rate limit responses gracefully
+- Implements exponential backoff for failed requests
+
+These features make SubCat more efficient, reliable, and versatile for subdomain enumeration tasks.
 
 ### License
 
-SubCat is made with 🖤 by duty1g
+SubCat is made with 🖤 by duty1g and Enhanced by Me and if you like it, you can buy me a coffee.
 
-<a href="https://www.buymeacoffee.com/duty1g" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+<a href="https://www.buymeacoffee.com/zied" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
