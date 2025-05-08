@@ -138,8 +138,17 @@ class SubCat:
                 self.logger.warn(f"Unsupported output format: {self.output_format}. Using 'txt' instead.")
             self.output_format = 'txt'
 
-        # Initialize output file if specified
+        # Add appropriate extension to output file if specified
         if self.output:
+            # Check if the output file already has an extension
+            _, ext = os.path.splitext(self.output)
+            # If no extension or different from the specified format, add the correct extension
+            if not ext or ext[1:].lower() != self.output_format:
+                self.output = f"{self.output}.{self.output_format}"
+                if self.logger:
+                    self.logger.debug(f"Added extension to output file: {self.output}")
+
+            # Initialize output file
             self._initialize_output_file()
 
         # Initialize cache if enabled
