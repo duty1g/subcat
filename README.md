@@ -244,6 +244,27 @@ https://support.hackerone.com [Sign into : HackerOne Support ] [HSTS,Envoy,Cloud
    subcat -d example.com -o results.csv -of csv -sc -ip
    ```
 
+**Save Results Using Specific Modules:**
+   ```console
+   subcat -d example.com -s ctrsh,wayback,hackertarget -o example_results.txt
+   ```
+   This command will:
+   - Scan only the example.com domain
+   - Use only the crt.sh, Wayback, and HackerTarget modules
+   - Save all discovered subdomains to example_results.txt
+
+**Save Results in Different Formats Using Specific Modules:**
+   ```console
+   # Save as JSON
+   subcat -d example.com -s ctrsh,wayback,hackertarget -o example_results.json -of json
+
+   # Save as CSV
+   subcat -d example.com -s ctrsh,wayback,hackertarget -o example_results.csv -of csv
+
+   # Save as XML
+   subcat -d example.com -s ctrsh,wayback,hackertarget -o example_results.xml -of xml
+   ```
+
 **Use Caching with Custom TTL:**
    ```console
    subcat -d example.com --cache-ttl 3600
