@@ -344,8 +344,21 @@ SubCat now includes domain-specific rate limiting to prevent API throttling:
 
 These features make SubCat more efficient, reliable, and versatile for subdomain enumeration tasks.
 
+You can add a **Contributors** section like this, following the style you're using:
+
+---
+
+### Contributors
+
+Special thanks to all the contributors who help make **SubCat** better!
+Want to contribute? Pull requests are welcome. 🙌
+
+* [@duty1g](https://github.com/duty1g) — Creator & Maintainer
+* [@zinzied](https://github.com/zinzied) — Contributor
+
+---
+
 ### License
 
-SubCat is made with 🖤 by duty1g and Enhanced by Me and if you like it, you can buy me a coffee.
-
-<a href="https://www.buymeacoffee.com/zied" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+SubCat is licensed under the [MIT License](LICENSE).
+Made with 🖤 by [@duty1g](https://github.com/duty1g)
