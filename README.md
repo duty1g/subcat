@@ -346,6 +346,6 @@ These features make SubCat more efficient, reliable, and versatile for subdomain
 
 ### License
 
-SubCat is made with 🖤 by duty1g
+SubCat is made with 🖤 by duty1g and Enhanced by Me and if you like it, you can buy me a coffee.
 
 <a href="https://www.buymeacoffee.com/zied" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
