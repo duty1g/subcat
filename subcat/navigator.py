@@ -63,6 +63,7 @@ class Navigator:
         'virustotal.com': {'requests': 4, 'period': 60},      # 4 requests per minute
         'censys.io': {'requests': 1, 'period': 1.5},          # 1 request per 1.5 seconds
         'binaryedge.io': {'requests': 10, 'period': 60},      # 10 requests per minute
+        'certspotter.com': {'requests': 1, 'period': 2},      # 1 request per 2 seconds
     }
 
     VALID_METHODS = {'GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'}
