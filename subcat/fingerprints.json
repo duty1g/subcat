@@ -4485,7 +4485,7 @@
             "cpe": "cpe:2.3:a:apache:apisix:*:*:*:*:*:*:*:*",
             "icon": "Apache APISIX.svg"
         },
-        "Apache HTTP Server": {
+        "Apache HTTP Server (HTTPD)": {
             "cats": [
                 22
             ],
