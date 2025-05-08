@@ -348,4 +348,4 @@ These features make SubCat more efficient, reliable, and versatile for subdomain
 
 SubCat is made with 🖤 by duty1g
 
-<a href="https://www.buymeacoffee.com/duty1g" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+<a href="https://www.buymeacoffee.com/zied" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
