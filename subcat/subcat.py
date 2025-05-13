@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Using urllib4 instead of urllib3 throughout the codebase
+
 import argparse
 import importlib
 import ipaddress
