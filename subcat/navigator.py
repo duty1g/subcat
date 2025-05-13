@@ -3,9 +3,9 @@ import urllib.parse
 import random
 import time
 from typing import Optional, Union, Dict, Any
-import urllib4
-from urllib4.exceptions import InsecureRequestWarning
-from urllib4.util.retry import Retry
+import urllib3
+from urllib3.exceptions import InsecureRequestWarning
+from urllib3.util.retry import Retry
 import requests
 from requests.adapters import HTTPAdapter
 if __package__:
@@ -126,10 +126,10 @@ class Navigator:
         self.session.verify = verify_ssl
         if not verify_ssl:
             # Disable warnings for unverified HTTPS requests
-            if hasattr(urllib4, 'disable_all_warnings'):
-                urllib4.disable_all_warnings()
+            if hasattr(urllib3, 'disable_all_warnings'):
+                urllib3.disable_all_warnings()
             else:
-                urllib4.disable_warnings(InsecureRequestWarning)
+                urllib3.disable_warnings(InsecureRequestWarning)
 
     def _get_domain_from_url(self, url: str) -> str:
         """Extract the domain from a URL for rate limiting purposes."""
