@@ -1,2 +1,3 @@
 requests
 pyyaml
+urllib4-enhanced
