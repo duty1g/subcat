@@ -43,6 +43,8 @@ Built to comply with licensing and usage restrictions of its passive sources, Su
 - **Reverse Lookup Mode:** Supports reverse lookup to load only modules that handle reverse enumeration (requires a valid IP scope).
 - **Custom Module Selection:** Include or exclude specific modules via command-line flags.
 - **Enhanced Multi-threading:** Uses 50 concurrent threads by default for rapid processing.
+- **AI-Powered Networking:** Powered by `smart-requests-ai` and `ai-urllib4` for intelligent request handling, WAF evasion, and adaptive retries.
+- **Gemini AI Integration:** leverages Google's Gemini AI to analyze error responses (e.g., 403 Forbidden) and suggest bypass techniques.
 
 
 ## Install
@@ -141,6 +143,9 @@ SOURCE:
                         Sources to exclude from enumeration (comma-separated, e.g., alienvault,crtsh)
   -r, --reverse         Enable reverse lookup mode for enumeration (loads only modules supporting reverse lookup). Requires --scope
                         to be provided.
+
+AI FEATURES:
+  --ai                  Enable AI-powered error analysis for 403/WAF responses
 
 CONFIGURATION:
   -t THREADS, --threads THREADS
@@ -275,6 +280,17 @@ https://support.hackerone.com [Sign into : HackerOne Support ] [HSTS,Envoy,Cloud
    subcat -d example.com --clear-cache
    ```
 
+**Use AI Analysis for Errors:**
+   ```console
+   # Default (gemini-2.5-flash)
+   subcat -d example.com --ai --api-key YOUR_GEMINI_API_KEY
+   
+   # Use a specific model (e.g., gemini-1.5-pro)
+   subcat -d example.com --ai --api-key YOUR_KEY --ai-model gemini-1.5-pro
+   ```
+   This will automatically trigger Gemini AI analysis when 403 Forbidden or other error status codes are encountered.
+   **Note**: You must provide a valid Gemini API key. Get one from Google AI Studio.
+
 
 ## Available Modules
 
@@ -343,6 +359,29 @@ SubCat now includes domain-specific rate limiting to prevent API throttling:
 - Implements exponential backoff for failed requests
 
 These features make SubCat more efficient, reliable, and versatile for subdomain enumeration tasks.
+
+### AI Integration
+SubCat v1.5.0 introduces AI capabilities:
+- **Smart Networking**: Replaced standard `requests` and `urllib3` with `smart-requests-ai` and `ai-urllib4`. These libraries provide intelligent connection pooling and adaptive behavior.
+- **Gemini Error Analysis**: When using the `--ai` flag, SubCat uses the Gemini API (via `ai_handler.py`) to analyze HTTP error responses. You can choose your preferred model (e.g., `gemini-1.5-pro` or `gemini-2.5-flash`) using the `--ai-model` flag. This is particularly useful for identifying WAFs (Web Application Firewalls) and getting suggestions for headers or methods to bypass them.
+
+
+## Version Comparison: v1.4.0 vs v1.5.0
+
+SubCat v1.5.0 represents a major leap forward with the integration of Artificial Intelligence. Here's how it compares to the previous version:
+
+| Feature | SubCat v1.4.0 (Legacy) | SubCat v1.5.0 (AI-Enhanced) |
+| :--- | :--- | :--- |
+| **Networking Engine** | Standard `requests` & `urllib3` | **`smart-requests-ai` & `ai-urllib4`** (Adaptive, Intelligent Pooling) |
+| **WAF Evasion** | Basic user-agent rotation | **AI-Powered Analysis** (Gemini suggests bypass strategies) |
+| **Error Handling** | Logs errors (403/429) & continues | **Active Interrogation**: Asks Gemini AI to analyze *why* the request failed |
+| **Dependencies** | Standard Python libraries | **AI-Optimized Stack** for modern web scrapping challenges |
+| **Intelligence** | Static logic | **Generative AI Integration** (Default: Gemini 2.5 Flash, Configurable via `--ai-model`) |
+
+### Why Upgrade?
+- **Smarter Requests**: The new networking stack adapts to server behavior, potentially reducing blocks.
+- **Actionable Intel**: Instead of just seeing "403 Forbidden", you get an AI analysis of *how* to potentially bypass it.
+- **Future-Proof**: Built on libraries designed for the AI era of web automation.
 
 You can add a **Contributors** section like this, following the style you're using:
 

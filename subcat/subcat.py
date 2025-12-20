@@ -54,7 +54,7 @@ digitalyama: []
 censys: []
 dnsarchive: []
 """
-version = '1.4.0'
+version = '1.5.0'
 
 
 def banner():
@@ -81,6 +81,7 @@ def banner():
 \t                  {0}ΫθΆΆΆ{1}ββββββββββββββββΡ΅
 \t                      {1}΅ΫΫΫ΅ΝNNΝΫΫΫΐ΅Ϋ
 \t                     v{5}{{{2}{6}{5}#dev}}{0}@{3}duty1g{1}
+\t                   {0}( Powered by AI ){1}
 '''
     head = head.format(light_grey, dark_grey, red, yellow, reset, green, version)
     print(bold + head + reset)
@@ -107,8 +108,13 @@ class SubCat:
                  config: str = 'config.yaml',
                  use_cache: bool = True,
                  cache_ttl: int = 86400,
-                 output_format: str = 'txt'):
+                 output_format: str = 'txt',
+                 ai_enabled: bool = False,
+                 api_key: Optional[str] = None,
+                 ai_model: str = "gemini-2.5-flash"):
         self.domain = domain.lower().strip()
+        self.api_key = api_key
+        self.ai_model = ai_model
         self.threads = threads
         self.match_codes = match_codes or []
         self.sources = sources
@@ -122,6 +128,8 @@ class SubCat:
         self.reverse = reverse
         self.output = output
         self.output_format = output_format.lower()
+        self.ai_enabled = ai_enabled
+
         self.found_domains = set()
         self.processed_domains = set()
         self.processed_results = []  # Store processed results for output
@@ -336,7 +344,7 @@ class SubCat:
     def get_domain_status(self, domain: str) -> Dict:
         """Determines the domain status, protocol, response, and title."""
         info = {"protocol": None, "status": None, "response": None, "title": ""}
-        with Navigator() as nav:
+        with Navigator(api_key=self.api_key, ai_model=self.ai_model) as nav:
             # Try HTTP GET first.
             try:
                 resp = nav.request(f"http://{domain}", method="GET", response_type="full", allow_redirects=True)
@@ -368,11 +376,21 @@ class SubCat:
                         info["response"] = resp
                     else:
                         info["status"] = None
-            if self.title and not info["status"] is None:
                 try:
                     info["title"] = nav._extract_title(resp) or ""
                 except Exception:
                     info["title"] = ""
+
+            # AI Analysis for WAF/Errors
+            if self.ai_enabled and info["status"] in [403, 406, 429, 500, 503]:
+                if info["response"]:
+                    try:
+                        self.logger.info(f"{yellow}[AI Analyzing {domain} - Status {info['status']}]{reset}")
+                        analysis = nav.analyze_error_with_ai(f"{info['protocol']}://{domain}", info["status"], info["response"].text)
+                        self.logger.info(f"{blue}[AI Analysis Result]{reset}\n{analysis}\n")
+                    except Exception as e:
+                        self.logger.debug(f"AI Analysis failed: {e}")
+
         return info
 
     def _initialize_output_file(self):
@@ -800,6 +818,12 @@ def argParserCommands():
                             help="Sources to exclude from enumeration (comma-separated, e.g., alienvault,crtsh)")
     source_grp.add_argument("-r", "--reverse", action="store_true",
                             help="Enable reverse lookup mode for enumeration (loads only modules supporting reverse lookup). Requires --scope to be provided.")
+    
+    ai_grp = parser.add_argument_group('AI FEATURES')
+    ai_grp.add_argument("--ai", action="store_true", help="Enable AI-powered error analysis for 403/WAF responses")
+    ai_grp.add_argument("--api-key", help="Gemini API Key (required for --ai)")
+    ai_grp.add_argument("--ai-model", default="gemini-2.5-flash", help="Gemini model to use (default: gemini-2.5-flash)")
+
     config_grp = parser.add_argument_group('CONFIGURATION')
     config_grp.add_argument('-t', '--threads', type=int, default=50, help="Number of concurrent threads (default: 50)")
     config_grp.add_argument('-c', '--config', help="Path to YAML config file (default: config.yaml)")
@@ -887,7 +911,7 @@ def main():
         for domain in domains:
             if not domain:
                 continue
-            SubCat(
+            subcat = SubCat(
                 domain=domain,
                 output=args.output,
                 threads=args.threads,
@@ -905,7 +929,10 @@ def main():
                 config=args.config,
                 use_cache=not args.no_cache,
                 cache_ttl=args.cache_ttl,
-                output_format=args.output_format
+                output_format=args.output_format,
+                ai_enabled=args.ai,
+                api_key=args.api_key,
+                ai_model=args.ai_model
             ).run()
     except KeyboardInterrupt:
         logger = Logger()

@@ -3,15 +3,17 @@ import urllib.parse
 import random
 import time
 from typing import Optional, Union, Dict, Any
-import urllib3
-from urllib3.exceptions import InsecureRequestWarning
-from urllib3.util.retry import Retry
-import requests
-from requests.adapters import HTTPAdapter
+import ai_urllib4
+from ai_urllib4.exceptions import InsecureRequestWarning
+from ai_urllib4.util.retry import Retry
+import smart_requests
+from smart_requests.adapters import HTTPAdapter
 if __package__:
     from .logger import Logger
+    from .ai_handler import AIHandler
 else:
     from logger import Logger
+    from ai_handler import AIHandler
 
 # Default list of user agents for rotation.
 DEFAULT_USER_AGENTS = [
@@ -77,7 +79,9 @@ class Navigator:
                  logger: Optional[Logger] = None,
                  max_retries: int = 3,
                  backoff_factor: float = 0.3,
-                 rate_limit: Optional[Dict] = None):
+                 rate_limit: Optional[Dict] = None,
+                 api_key: Optional[str] = None,
+                 ai_model: str = "gemini-2.5-flash"):
         """
         Initialize the Navigator with advanced HTTP client features.
 
@@ -89,9 +93,11 @@ class Navigator:
         :param max_retries: Maximum number of retry attempts for failed requests
         :param backoff_factor: Backoff factor for retry delay calculation
         :param rate_limit: Custom rate limit settings (overrides defaults)
+        :param api_key: Gemini API Key for AI features
+        :param ai_model: Gemini model identifier
         """
         self.debug = debug
-        self.session = requests.Session()
+        self.session = smart_requests.Session()
         self.timeout = timeout
         self.verify_ssl = verify_ssl
         self.last_response = None
@@ -103,6 +109,7 @@ class Navigator:
         self.request_counts = {}     # Track request counts per domain
 
         self.logger = logger
+
 
         # Configure retry strategy
         retry_strategy = Retry(
@@ -116,6 +123,17 @@ class Navigator:
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
 
+        # Initialize AI Handler with user-provided key
+        self.ai_key = api_key
+        self.ai_model = ai_model
+        self.ai_handler = AIHandler(self.ai_key, model=self.ai_model, logger=self.logger) if self.ai_key else None
+
+    def analyze_error_with_ai(self, url: str, status_code: int, content: str) -> str:
+        """Use Gemini to analyze a failed request."""
+        if not self.ai_handler:
+            return "AI Handler not initialized."
+        return self.ai_handler.analyze_error(url, status_code, content)
+
         # Set headers with user agent rotation
         headers = self.DEFAULT_HEADERS.copy()
         if user_agent is None:
@@ -126,10 +144,10 @@ class Navigator:
         self.session.verify = verify_ssl
         if not verify_ssl:
             # Disable warnings for unverified HTTPS requests
-            if hasattr(urllib3, 'disable_all_warnings'):
-                urllib3.disable_all_warnings()
+            if hasattr(ai_urllib4, 'disable_all_warnings'):
+                ai_urllib4.disable_all_warnings()
             else:
-                urllib3.disable_warnings(InsecureRequestWarning)
+                ai_urllib4.disable_warnings(InsecureRequestWarning)
 
     def _get_domain_from_url(self, url: str) -> str:
         """Extract the domain from a URL for rate limiting purposes."""
@@ -176,7 +194,7 @@ class Navigator:
         self.request_counts[domain] += 1
 
     def request(self, url: str, method: str = 'GET', response_type: str = 'text', **kwargs: Any) -> Union[
-        requests.Response, str, Dict[str, Any], None]:
+        smart_requests.Response, str, Dict[str, Any], None]:
         """
         Make an HTTP request with rate limiting, retries, and comprehensive error handling.
 
@@ -239,7 +257,7 @@ class Navigator:
             if response_type.lower() not in ['status_code', 'full']:
                 response.raise_for_status()
             return self._process_response(response, response_type)
-        except requests.HTTPError as e:
+        except smart_requests.HTTPError as e:
             if e.response is not None:
                 self.last_response = e.response
                 self.last_raw_content = e.response.content
@@ -250,15 +268,15 @@ class Navigator:
                     return e.response
             self._log_error(f"Request failed: {e}")
             return None
-        except requests.RequestException as e:
+        except smart_requests.RequestException as e:
             self._log_error(f"Request failed: {e}")
             return None
         except Exception as e:
             self._log_error(f"Unexpected error: {e}")
             return None
 
-    def _process_response(self, response: requests.Response, response_type: str) -> Union[
-        requests.Response, str, Dict[str, Any], None]:
+    def _process_response(self, response: smart_requests.Response, response_type: str) -> Union[
+        smart_requests.Response, str, Dict[str, Any], None]:
         processors = {
             'text': lambda r: r.text,
             'json': self._safe_json_parse,
@@ -280,7 +298,7 @@ class Navigator:
             self._log_error(f"Response processing failed: {e}")
             return None
 
-    def _safe_json_parse(self, response: requests.Response) -> Optional[Dict]:
+    def _safe_json_parse(self, response: smart_requests.Response) -> Optional[Dict]:
         try:
             content = response.text.strip()
             if not content:
@@ -290,7 +308,7 @@ class Navigator:
             self._log_error(f"JSON parse error: {e}")
             return None
 
-    def _extract_title(self, response: requests.Response) -> str:
+    def _extract_title(self, response: smart_requests.Response) -> str:
         try:
             title_tag = re.search(r'<title[^>]*>(.*?)</title>', response.text, re.IGNORECASE | re.DOTALL)
             if title_tag:

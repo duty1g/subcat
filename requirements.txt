@@ -1,3 +1,3 @@
-requests
+smart-requests-ai>=3.0.0
 pyyaml
-urllib3>=2.0.0
+ai-urllib4>=1.5.0
