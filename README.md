@@ -1,9 +1,10 @@
 
 # SubCat v1.6.0
 
-![alt text](https://img.shields.io/github/stars/duty1g/subcat "")
-![alt text](https://img.shields.io/github/languages/top/duty1g/subcat "")
-![alt text](https://img.shields.io/github/license/duty1g/subcat "")
+![alt text](https://img.shields.io/github/stars/duty1g/subcat)
+![PyPI Version](https://img.shields.io/pypi/v/subcat)
+![alt text](https://img.shields.io/github/languages/top/duty1g/subcat)
+![PyPI License](https://img.shields.io/pypi/l/subcat)
 <a href="https://twitter.com/duty_1g"><img src="https://img.shields.io/twitter/follow/duty_1g.svg?logo=twitter"></a>
 
 
