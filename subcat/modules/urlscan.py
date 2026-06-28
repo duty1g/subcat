@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 try:
     from subcat.navigator import Navigator
-except:
+except ImportError:
     from navigator import Navigator
 
 URL_API_DOMAIN = 'https://urlscan.io/api/v1/search/?q=domain:{}'
@@ -15,7 +15,7 @@ def returnDomains(domain: str, logger, conf: str, reverse: bool = False, scope_l
     domains = set()
     if not reverse:
         try:
-            with Navigator(debug=logger.level >= 2, timeout=20, verify_ssl=False) as nav:
+            with Navigator(debug=logger.level >= 2, timeout=5, verify_ssl=False) as nav:
                 response = nav.request(URL_API_DOMAIN.format(domain), response_type='json', method='GET')
                 debug_info = nav.get_debug_info()
                 logger.verbose(f"Urlscan Status Code: {debug_info.get('status_code')}")
@@ -42,7 +42,7 @@ def returnDomains(domain: str, logger, conf: str, reverse: bool = False, scope_l
         def query_ip(ip: str) -> List[str]:
             local_domains = []
             try:
-                with Navigator(debug=logger.level >= 2, timeout=20, verify_ssl=False) as nav:
+                with Navigator(debug=logger.level >= 2, timeout=5, verify_ssl=False) as nav:
                     response = nav.request(URL_API_IP.format(ip), response_type='json', method='GET')
                     debug_info = nav.get_debug_info()
                     logger.verbose(f"Urlscan Reverse (IP {ip}) Status Code: {debug_info.get('status_code')}")

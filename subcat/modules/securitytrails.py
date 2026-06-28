@@ -4,7 +4,7 @@ import json
 try:
     from subcat.navigator import Navigator
     from subcat.config import Config
-except:
+except ImportError:
     from navigator import Navigator
     from config import Config
 
@@ -26,7 +26,7 @@ def returnDomains(domain: str, logger, conf: str, reverse: bool = False, scope_l
         api_url = URL_API_DOMAIN.format(domain)
         for key in keys:
             try:
-                with Navigator(debug=logger.level >= 2, timeout=20, verify_ssl=False) as nav:
+                with Navigator(debug=logger.level >= 2, timeout=5, verify_ssl=False) as nav:
                     response = nav.request(
                         api_url,
                         response_type='json',
@@ -63,7 +63,7 @@ def returnDomains(domain: str, logger, conf: str, reverse: bool = False, scope_l
             # Prepare the JSON payload for the POST request.
             payload = json.dumps({"filter": {"ipv4": ip}})
             try:
-                with Navigator(debug=logger.level >= 2, timeout=20, verify_ssl=False) as nav:
+                with Navigator(debug=logger.level >= 2, timeout=5, verify_ssl=False) as nav:
                     response = nav.request(
                         URL_API_REVERSE,
                         response_type='json',

@@ -2,6 +2,20 @@ import yaml
 import os
 
 
+default_config = """binaryedge: []
+virustotal: []
+securitytrails: []
+shodan: []
+bevigil: []
+chaos: []
+dnsdumpster: []
+netlas: []
+digitalyama: []
+censys: []
+dnsarchive: []
+"""
+
+
 class Config:
     def __init__(self, logger=None, config: str = 'config.yaml'):
         self.logger = logger

@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 try:
     from subcat.navigator import Navigator
     from subcat.config import Config
-except:
+except ImportError:
     from navigator import Navigator
     from config import Config
 
@@ -25,7 +25,7 @@ def returnDomains(domain: str, logger, conf: str, reverse: bool = False, scope_l
             try:
                 api_id, api_secret = key.split(':')
                 auth = base64.b64encode(f"{api_id}:{api_secret}".encode()).decode()
-                with Navigator(debug=logger.level >= 2, timeout=30) as nav:
+                with Navigator(debug=logger.level >= 2, timeout=8) as nav:
                     response = nav.request(
                         URL_API,
                         params={'q': f'names:{domain}', 'per_page': 1000},
@@ -65,7 +65,7 @@ def returnDomains(domain: str, logger, conf: str, reverse: bool = False, scope_l
         def query_ip(ip: str, auth: str) -> List[str]:
             local_domains = []
             try:
-                with Navigator(debug=logger.level >= 2, timeout=30) as nav:
+                with Navigator(debug=logger.level >= 2, timeout=8) as nav:
                     response = nav.request(
                         URL_API,
                         params={'q': f'ip:{ip}', 'per_page': 1000},

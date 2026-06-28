@@ -2,7 +2,7 @@ from typing import List
 from urllib.parse import urlparse
 try:
     from subcat.navigator import Navigator
-except:
+except ImportError:
     from navigator import Navigator
 
 URL_API = 'http://web.archive.org/cdx/search/cdx?url=*.{}/*&output=txt&fl=original&collapse=urlkey'
@@ -15,7 +15,7 @@ def is_valid_subdomain(subdomain: str, domain: str) -> bool:
 def returnDomains(domain: str, logger, conf: str, reverse: bool = False, scope_list: List[str] = None) -> List[str]:
     domains = set()
     try:
-        with Navigator(debug=logger.level >= 2, timeout=30, verify_ssl=False) as nav:
+        with Navigator(debug=logger.level >= 2, timeout=8, verify_ssl=False) as nav:
             api_url = URL_API.format(domain)
             response = nav.request(
                 url=api_url,

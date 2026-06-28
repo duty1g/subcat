@@ -1,0 +1,4 @@
+# Vendored Wappalyzer icon set — keep line endings stable across platforms
+# (avoids LF<->CRLF churn on the SVGs and treats PNGs as binary).
+subcat/assets/icons/*.svg text eol=lf
+subcat/assets/icons/*.png binary

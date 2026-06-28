@@ -2,7 +2,7 @@ from typing import List
 try:
     from subcat.navigator import Navigator
     from subcat.config import Config
-except:
+except ImportError:
     from navigator import Navigator
     from config import Config
 
@@ -18,7 +18,7 @@ def returnDomains(domain: str, logger, conf: str, reverse: bool = False, scope_l
 
     for key in keys:
         try:
-            with Navigator(debug=logger.level >= 2, timeout=20, verify_ssl=False) as nav:
+            with Navigator(debug=logger.level >= 2, timeout=5, verify_ssl=False) as nav:
                 response = nav.request(
                     URL_API.format(domain),
                     response_type='json',

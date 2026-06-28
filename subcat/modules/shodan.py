@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 try:
     from subcat.navigator import Navigator
     from subcat.config import Config
-except:
+except ImportError:
     from navigator import Navigator
     from config import Config
 
@@ -23,7 +23,7 @@ def returnDomains(domain: str, logger, conf: str, reverse: bool = False, scope_l
         # Normal mode: use the domain-based endpoint.
         for key in keys:
             try:
-                with Navigator(debug=logger.level >= 2, timeout=20, verify_ssl=False) as nav:
+                with Navigator(debug=logger.level >= 2, timeout=5, verify_ssl=False) as nav:
                     url = URL_API_DOMAIN.format(domain, key)
                     response = nav.request(
                         url,
@@ -54,7 +54,7 @@ def returnDomains(domain: str, logger, conf: str, reverse: bool = False, scope_l
             local_domains = []
             url = URL_API_REVERSE.format(ip, key)
             try:
-                with Navigator(debug=logger.level >= 2, timeout=20, verify_ssl=False) as nav:
+                with Navigator(debug=logger.level >= 2, timeout=5, verify_ssl=False) as nav:
                     response = nav.request(
                         url,
                         response_type='json',

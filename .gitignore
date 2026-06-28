@@ -1,3 +1,6 @@
+# Claude Code local files
+.claude/
+
 # Byte-compiled / optimized / DLL files
 config.yaml
 __pycache__/
@@ -134,3 +137,13 @@ htmlcov/
 .coverage.*
 *,cover
 
+
+# report UI (Node) — the built bundle is vendored in subcat/assets/, so the
+# source project's deps and build output are not tracked.
+subcat/ui/node_modules/
+subcat/ui/dist/
+_preview/
+
+# Note: the vendored Wappalyzer icon set (subcat/assets/icons/) IS committed so
+# clones and CI builds produce a complete wheel. Re-vendor/update it with
+# `python subcat/ui/sync_icons.py` after changing fingerprints.json.

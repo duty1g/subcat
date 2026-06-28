@@ -1,7 +1,7 @@
 from typing import List
 try:
     from subcat.navigator import Navigator
-except:
+except ImportError:
     from navigator import Navigator
 
 URL_API = 'https://jldc.me/anubis/subdomains/{}'
@@ -10,7 +10,7 @@ URL_API = 'https://jldc.me/anubis/subdomains/{}'
 def returnDomains(domain: str, logger, conf: str, reverse: bool = False, scope_list: List[str] = None) -> List[str]:
     domains = set()
     try:
-        with Navigator(debug=logger.level >= 2, timeout=20) as nav:
+        with Navigator(debug=logger.level >= 2, timeout=5) as nav:
             response = nav.request(
                 URL_API.format(domain),
                 response_type='json',

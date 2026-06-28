@@ -1,0 +1,8 @@
+# The report UI source (subcat/ui) is a Node/Vite project used only to build the
+# vendored bundle at subcat/assets/report_ui.html. Don't ship the source, lockfile
+# or build tooling in sdists/wheels — only the built assets are needed at runtime.
+prune subcat/ui
+
+# Always include the vendored report assets (bundle + Wappalyzer icons).
+recursive-include subcat/assets *.html
+recursive-include subcat/assets/icons *

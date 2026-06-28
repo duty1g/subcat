@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 try:
     from subcat.navigator import Navigator
     from subcat.config import Config
-except:
+except ImportError:
     from navigator import Navigator
     from config import Config
 
@@ -26,7 +26,7 @@ def returnDomains(domain: str, logger, conf: str, reverse: bool = False, scope_l
         for key in keys:
             try:
                 params['apikey'] = key
-                with Navigator(debug=logger.level >= 2, timeout=20, verify_ssl=False) as nav:
+                with Navigator(debug=logger.level >= 2, timeout=5, verify_ssl=False) as nav:
                     response = nav.request(
                         api_url,
                         response_type='json',
@@ -67,7 +67,7 @@ def returnDomains(domain: str, logger, conf: str, reverse: bool = False, scope_l
             local_domains = []
             params = {'ip': ip, 'apikey': key}
             try:
-                with Navigator(debug=logger.level >= 2, timeout=20, verify_ssl=False) as nav:
+                with Navigator(debug=logger.level >= 2, timeout=5, verify_ssl=False) as nav:
                     response = nav.request(
                         URL_API_IP,
                         response_type='json',

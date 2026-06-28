@@ -2,7 +2,7 @@ from typing import List
 import time
 try:
     from subcat.navigator import Navigator
-except:
+except ImportError:
     from navigator import Navigator
 
 URL_API = 'https://api.certspotter.com/v1/issuances?domain={}'
@@ -18,7 +18,7 @@ def returnDomains(domain: str, logger, conf: str, reverse: bool = False, scope_l
 
     for attempt in range(max_retries):
         try:
-            with Navigator(debug=logger.level >= 2, timeout=30, verify_ssl=False, rate_limit=custom_rate_limit) as nav:
+            with Navigator(debug=logger.level >= 2, timeout=8, verify_ssl=False, rate_limit=custom_rate_limit) as nav:
                 logger.debug(f"CertSpotter: Attempt {attempt+1}/{max_retries}")
                 response = nav.request(URL_API.format(domain), response_type='json', method='GET')
                 debug_info = nav.get_debug_info()

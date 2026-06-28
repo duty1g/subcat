@@ -11,9 +11,15 @@ else:
 
 
 class Detector:
-    def __init__(self, logger=None):
+    def __init__(self, logger=None, enable_tls_check=False):
         self.logger = logger
         self.fingerprints = self.load_fingerprints()
+        self.enable_tls_check = enable_tls_check
+        # Cache AWS ranges once instead of loading per domain (HUGE performance boost)
+        self._aws_ranges_cache = None
+        # Cached set of window.* paths referenced by `js` fingerprints, for the
+        # Playwright probe (built lazily).
+        self._js_paths = None
 
     def load_fingerprints(self) -> dict:
         """
@@ -21,7 +27,9 @@ class Detector:
         """
         fingerprints_file = os.path.join(os.path.dirname(__file__), 'fingerprints.json')
         try:
-            with open(fingerprints_file) as f:
+            # Must be utf-8: the file holds non-ASCII tech names and would fail
+            # to decode under the platform default (e.g. cp1252 on Windows).
+            with open(fingerprints_file, encoding='utf-8') as f:
                 cached = json.load(f)
                 return cached.get('apps', {})
         except Exception as e:
@@ -56,12 +64,18 @@ class Detector:
             return []
 
     def load_aws_ranges(self, url: str = "https://ip-ranges.amazonaws.com/ip-ranges.json") -> dict:
+        """Load AWS IP ranges once and cache them (performance optimization)."""
+        if self._aws_ranges_cache is not None:
+            return self._aws_ranges_cache
+
         try:
             with Navigator(debug=self.logger is not None, logger=self.logger) as nav:
-                return nav.request(url, method="GET", response_type="json")
+                self._aws_ranges_cache = nav.request(url, method="GET", response_type="json") or {}
+                return self._aws_ranges_cache
         except Exception as e:
             if self.logger:
                 self.logger.debug(f"Error loading AWS ranges: {e}")
+            self._aws_ranges_cache = {}
             return {}
 
     def is_ip_in_aws(self, ip, aws_ranges) -> bool:
@@ -75,136 +89,229 @@ class Detector:
             pass
         return False
 
+    # ---- Wappalyzer pattern helpers --------------------------------------
+
+    @staticmethod
+    def _regex_of(pattern: str) -> str:
+        """
+        Strip Wappalyzer tags (``\\;version:..``, ``\\;confidence:..``) from a
+        pattern, leaving just the regex. An empty pattern means "exists".
+        """
+        if not pattern:
+            return ''
+        return pattern.split('\\;', 1)[0]
+
+    @classmethod
+    def _any_match(cls, patterns, values) -> bool:
+        """True if any pattern matches any value (empty pattern = value exists)."""
+        if values is None:
+            return False
+        if isinstance(values, str):
+            values = [values]
+        if not values:
+            return False
+        if isinstance(patterns, str):
+            patterns = [patterns]
+        for pat in (patterns or ['']):
+            rx = cls._regex_of(pat)
+            if rx == '':
+                return True  # presence is enough
+            for val in values:
+                if val is None:
+                    continue
+                try:
+                    if re.search(rx, str(val), re.IGNORECASE):
+                        return True
+                except re.error:
+                    continue
+        return False
+
+    def js_probe_paths(self):
+        """Unique ``window.*`` paths referenced by all `js` fingerprints."""
+        if self._js_paths is None:
+            paths = set()
+            for rules in self.fingerprints.values():
+                js = rules.get('js')
+                if isinstance(js, dict):
+                    paths.update(js.keys())
+            self._js_paths = sorted(paths)
+        return self._js_paths
+
+    @staticmethod
+    def _scripts_from_html(html: str):
+        return re.findall(r'<script[^>]+src=["\'](.*?)["\']', html or '', re.IGNORECASE)
+
+    @staticmethod
+    def _meta_from_html(html: str):
+        meta = {}
+        for tag in re.findall(r'<meta\b[^>]*>', html or '', re.IGNORECASE):
+            name = re.search(r'(?:name|property|http-equiv)\s*=\s*["\']([^"\']+)["\']', tag, re.IGNORECASE)
+            content = re.search(r'content\s*=\s*["\']([^"\']*)["\']', tag, re.IGNORECASE)
+            if name and content:
+                meta.setdefault(name.group(1).lower(), []).append(content.group(1))
+        return meta
+
+    @staticmethod
+    def _cookie_names(pattern: str, cookies: dict):
+        """Cookie names in ``cookies`` matching a rule name (supports ``*``)."""
+        if pattern in cookies:
+            return [pattern]
+        if '*' in pattern:
+            rx = '^' + re.escape(pattern).replace(r'\*', '.*') + '$'
+            return [n for n in cookies if re.match(rx, n, re.IGNORECASE)]
+        return []
+
+    # ---- detection entry points ------------------------------------------
+
+    @staticmethod
+    def _cookies_from_response(response) -> dict:
+        """
+        Cookie name->value from a requests.Response (and its redirect chain),
+        falling back to parsing the Set-Cookie header. Enables the static path
+        to match `cookies` fingerprints without a browser.
+        """
+        cookies = {}
+        try:
+            for resp in [response] + list(getattr(response, 'history', []) or []):
+                jar = getattr(resp, 'cookies', None)
+                if jar is not None:
+                    for c in jar:
+                        cookies.setdefault(c.name, c.value or '')
+        except Exception:
+            pass
+        if not cookies:
+            sc = (getattr(response, 'headers', {}) or {}).get('set-cookie')
+            if sc:
+                for part in re.split(r',(?=[^ ;]+=)', sc):
+                    name = part.split('=', 1)[0].strip()
+                    if name:
+                        cookies.setdefault(name, '')
+        return cookies
+
     def detect(self, domain: str, response) -> list:
         """
-        Detect technologies for the given domain using a single Navigator response.
-        This version applies threading for faster detection.
+        Detect technologies from a single Navigator/requests response
+        (static HTML + headers + cookies). No JS execution.
         """
+        html = getattr(response, 'text', '') or ''
+        headers = getattr(response, 'headers', {}) or {}
+        evidence = {
+            'html': html,
+            'headers': {k.lower(): v for k, v in headers.items()},
+            'scriptSrc': self._scripts_from_html(html),
+            'meta': self._meta_from_html(html),
+            'cookies': self._cookies_from_response(response),
+            'js': {},
+        }
+        return self._match_fingerprints(domain, evidence)
+
+    def detect_rich(self, domain: str, evidence: dict) -> list:
+        """
+        Detect technologies from live-page evidence collected by Playwright:
+        rendered html, response headers, cookies, real script URLs, meta tags
+        and ``window.*`` JS globals. Catches js/scriptSrc/cookies fingerprints a
+        static fetch can't.
+        """
+        evidence = evidence or {}
+        meta = evidence.get('meta') or {}
+        ev = {
+            'html': evidence.get('html') or '',
+            'headers': {k.lower(): v for k, v in (evidence.get('headers') or {}).items()},
+            'scriptSrc': evidence.get('scriptSrc') or [],
+            'meta': {k.lower(): (v if isinstance(v, list) else [v]) for k, v in meta.items()},
+            'cookies': evidence.get('cookies') or {},
+            'js': evidence.get('js') or {},
+        }
+        return self._match_fingerprints(domain, ev)
+
+    def _match_fingerprints(self, domain: str, ev: dict) -> list:
+        """Match all fingerprints against the collected evidence (threaded)."""
         detected = []
-        page_content = response.text
-        headers = response.headers
-        headers_normalized = {k.lower(): v for k, v in headers.items()} if headers else {}
+        if not self.fingerprints:
+            return detected
 
-        # Get TLS info once.
+        html = ev.get('html', '')
+        headers = ev.get('headers', {})
+        cookies = ev.get('cookies', {})
+        scriptsrc = ev.get('scriptSrc', [])
+        metas = ev.get('meta', {})
+        jsev = ev.get('js', {})
+
         tls_info = ""
-        try:
-            cert = self.get_tls_certificate(domain)
-            tls_info = self.extract_tls_info(cert)
-        except Exception as e:
-            if self.logger:
-                self.logger.debug(f"TLS detection failed for {domain}: {e}")
-
-        # Get CNAME records once.
+        if self.enable_tls_check:
+            try:
+                tls_info = self.extract_tls_info(self.get_tls_certificate(domain))
+            except Exception as e:
+                if self.logger:
+                    self.logger.debug(f"TLS detection failed for {domain}: {e}")
         cname_records = self.get_cname(domain)
 
-        # Define a function to check each technology.
         def check_tech(tech, rules):
-            # Check header rules.
-            if "headers" in rules:
-                for header, patterns in rules["headers"].items():
-                    header_value = headers_normalized.get(header.lower(), "")
-                    if header_value:
-                        if isinstance(patterns, list):
-                            for pattern in patterns:
-                                if re.search(pattern, header_value, re.IGNORECASE):
-                                    return tech
-                        elif isinstance(patterns, str):
-                            if re.search(patterns, header_value, re.IGNORECASE):
-                                return tech
-
-            # Check HTML rules.
-            if "html" in rules and page_content:
-                patterns = rules["html"]
-                if isinstance(patterns, list):
-                    for pattern in patterns:
-                        if re.search(pattern, page_content, re.IGNORECASE):
-                            return tech
-                elif isinstance(patterns, str):
-                    if re.search(patterns, page_content, re.IGNORECASE):
+            # headers
+            hr = rules.get('headers')
+            if hr:
+                for h, pats in hr.items():
+                    hv = headers.get(h.lower())
+                    if hv is not None and self._any_match(pats, [hv]):
                         return tech
-
-            # Check meta rules.
-            if "meta" in rules and page_content:
-                patterns = rules["meta"]
-                if isinstance(patterns, list):
-                    for pattern in patterns:
-                        if re.search(pattern, page_content, re.IGNORECASE):
+            # cookies
+            cr = rules.get('cookies')
+            if cr and cookies:
+                for cname, pats in cr.items():
+                    for n in self._cookie_names(cname, cookies):
+                        if self._any_match(pats, [cookies[n] or '']):
                             return tech
-                elif isinstance(patterns, str):
-                    if re.search(patterns, page_content, re.IGNORECASE):
+            # js (window.* globals from the live page)
+            jr = rules.get('js')
+            if jr and jsev:
+                for path, pats in jr.items():
+                    if path in jsev and self._any_match(pats, [jsev[path] or '']):
                         return tech
-
-            # Check script rules.
-            if "script" in rules and page_content:
-                patterns = rules["script"]
-                script_srcs = re.findall(r'<script[^>]+src=["\'](.*?)["\']', page_content, re.IGNORECASE)
-                if isinstance(patterns, list):
-                    for pattern in patterns:
-                        for src in script_srcs:
-                            if re.search(pattern, src, re.IGNORECASE):
-                                return tech
-                elif isinstance(patterns, str):
-                    for src in script_srcs:
-                        if re.search(patterns, src, re.IGNORECASE):
-                            return tech
-
-            # Check TLS rules.
-            if tls_info and "tls" in rules:
-                patterns = rules["tls"]
-                if isinstance(patterns, list):
-                    for pattern in patterns:
-                        if re.search(pattern, tls_info, re.IGNORECASE):
-                            return tech
-                elif isinstance(patterns, str):
-                    if re.search(patterns, tls_info, re.IGNORECASE):
+            # scriptSrc (real loaded script URLs)
+            sr = rules.get('scriptSrc')
+            if sr and scriptsrc and self._any_match(sr, scriptsrc):
+                return tech
+            # html
+            hh = rules.get('html')
+            if hh and html and self._any_match(hh, [html]):
+                return tech
+            # meta
+            mr = rules.get('meta')
+            if mr:
+                for mname, pats in mr.items():
+                    contents = metas.get(mname.lower())
+                    if contents and self._any_match(pats if pats else '', contents):
                         return tech
-
-            # Check CNAME rules.
-            if "cname" in rules:
-                patterns = rules["cname"]
-                if not isinstance(patterns, list):
-                    patterns = [patterns]
-                for cname in cname_records:
-                    for pattern in patterns:
-                        if re.search(pattern, cname, re.IGNORECASE):
-                            return tech
-
-            # No match found.
+            # tls / cname (legacy keys, kept for compatibility)
+            if tls_info and rules.get('tls') and self._any_match(rules['tls'], [tls_info]):
+                return tech
+            if rules.get('cname') and cname_records and self._any_match(rules['cname'], cname_records):
+                return tech
             return None
 
-        # Use ThreadPoolExecutor to run checks concurrently.
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future_to_tech = {
-                executor.submit(check_tech, tech, rules): tech
-                for tech, rules in self.fingerprints.items()
-            }
-            for future in concurrent.futures.as_completed(future_to_tech):
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(50, len(self.fingerprints))) as executor:
+            futures = {executor.submit(check_tech, tech, rules): tech
+                       for tech, rules in self.fingerprints.items()}
+            for future in concurrent.futures.as_completed(futures):
                 result = future.result()
                 if result and result not in detected:
                     detected.append(result)
 
-        # Process "implies" field.
+        # implies
         for tech in detected.copy():
-            if tech in self.fingerprints:
-                rule = self.fingerprints[tech]
-                if "implies" in rule:
-                    implied = rule["implies"]
-                    if isinstance(implied, list):
-                        for impl in implied:
-                            if impl not in detected:
-                                detected.append(impl)
-                    elif isinstance(implied, str):
-                        if implied not in detected:
-                            detected.append(implied)
+            implied = self.fingerprints.get(tech, {}).get('implies')
+            if isinstance(implied, str):
+                implied = [implied]
+            for impl in (implied or []):
+                impl = impl.split('\\;', 1)[0]  # implies can carry confidence tags
+                if impl and impl not in detected:
+                    detected.append(impl)
 
-        # Extra AWS IP range check.
-        def get_target_ip(target):
-            try:
-                return socket.gethostbyname(target)
-            except Exception:
-                return None
-
-        target_ip = get_target_ip(domain)
+        # AWS IP-range check
+        try:
+            target_ip = socket.gethostbyname(domain)
+        except Exception:
+            target_ip = None
         if target_ip:
             aws_ranges = self.load_aws_ranges()
             if aws_ranges and self.is_ip_in_aws(target_ip, aws_ranges):
