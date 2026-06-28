@@ -7,7 +7,7 @@
 <a href="https://twitter.com/duty_1g"><img src="https://img.shields.io/twitter/follow/duty_1g.svg?logo=twitter"></a>
 
 
-<p align="center"><img src="https://i.postimg.cc/76Bx6ZFY/logo.png" width="30%"/>
+<p align="center"><img src="https://i.postimg.cc/76Bx6ZFY/logo.png" width="50%"/>
 </p>
 <h4 align="center">Fast subdomain enumeration tool.</h4>
 
@@ -30,7 +30,7 @@ From quick passive recon to deep, browser-rendered detection and visual reportin
 
 ## Features
 
-<img width="1000" alt="demo" src="https://i.postimg.cc/y82qLr9N/out.gif">
+<img width="1000" alt="demo" src="https://i.postimg.cc/jqvk2kM2/out.gif">
 
 - **Multiple Modes:** `passive` (API/passive sources), `brute` (DNS brute force), `monitor` (continuous monitoring), and `report` (serve the screenshot web UI).
 - **Fast Enumeration:** Leverages a high-performance resolution and wildcard elimination module.
