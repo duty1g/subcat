@@ -81,6 +81,11 @@ subcat report -h
 pip install subcat
 ```
 
+Or install the latest development version straight from GitHub:
+```
+pip install git+https://github.com/duty1g/subcat.git
+```
+
 Screenshots and deep-detection (browser mode) require the Playwright Chromium browser. Install it once after installing SubCat:
 
 ```console
